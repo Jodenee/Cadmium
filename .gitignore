@@ -1,0 +1,18 @@
+# Ignore all pycache folders
+**/__pycache__/
+
+# Ignore code editor configuration folders
+.vscode
+.idea
+
+# Ignore specific file types
+*.mp3
+*.mp4
+*.webm
+*.m4a
+
+# Ignore download text file
+to_download.txt
+
+# Ignore configuration file
+Configuration.json
