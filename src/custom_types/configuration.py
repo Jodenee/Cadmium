@@ -1,10 +1,10 @@
-from typing import ReadOnly, TypedDict
+from typing import TypedDict
 
 from custom_types.quality_of_life_configuration import QualityOfLifeConfiguration
 from custom_types.warning_configuration import WarningConfiguration
 from custom_types.download_behavior_configuration import DownloadBehaviorConfiguration
 
 class Configuration(TypedDict):
-    download_behavior_configuration: ReadOnly[DownloadBehaviorConfiguration]
-    quality_of_life_configuration: ReadOnly[QualityOfLifeConfiguration]
-    warning_configuration: ReadOnly[WarningConfiguration]
+    download_behavior_configuration: DownloadBehaviorConfiguration
+    quality_of_life_configuration: QualityOfLifeConfiguration
+    warning_configuration: WarningConfiguration
