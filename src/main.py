@@ -107,7 +107,7 @@ def main() -> None:
     spaced_print(f"Cadmium - v{__version__}")
 
     while True:
-        print(f"Download formats: ({ ", ".join(download_formats) })")
+        print(f"Download formats: ({ ', '.join(download_formats) })")
         download_format_input: str = spaced_input("Select the format the media will be downloaded as: ").upper() # TODO: use a menu and validate input to prevent a key error
 
         download_format = DownloadFormat[download_format_input]
