@@ -24,19 +24,20 @@ SOFTWARE.
 
 __version__ = "0.0.0"
 
-from pytubefix.exceptions import PytubeFixError, BotDetection
-from ffmpeg import FFmpegError
+from pytubefix.exceptions import BotDetection
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
-from enums import DownloadFormat, MediaType
-from exceptions import DownloadDirectoryIsAFileError, PathDoesNotExistError, SettingCorruptError, SettingNotFoundError, VideoDownloadSkipped
-from custom_types import Configuration, DownloadConfiguration
-from utilities.configuration import load_configuration, create_configuration_file
-from utilities.console import spaced_input, spaced_print
-from utilities.download import Downloader
-from utilities.validation import parse_youtube_link_type
+from pick import Option, pick
+
+from core.enums import DownloadFormat, MediaType
+from core.exceptions import InvalidSettingError, ConfigurationFileCorruptError
+from core.custom_types import Configuration, DownloadConfiguration
+from core.utilities.configuration import load_configuration, create_configuration_file
+from core.utilities.console import spaced_print
+from core.utilities.download import Downloader
+from core.utilities.validation import parse_youtube_link_type
 
 # Required + default files/directories
 
@@ -44,23 +45,25 @@ project_root_directory: Path = Path(__file__).parent.resolve()
 
 to_download_file: Path = project_root_directory.joinpath("to_download.txt")
 configuration_file_path: Path = project_root_directory.joinpath("configuration.json")
-temp_files_directory_path: Path = project_root_directory.joinpath("temporary_files")
-downloads_folder_directory_path: Path = project_root_directory.joinpath("downloads")
+temporary_files_directory_path: Path = project_root_directory.joinpath("temporary_files")
+downloads_directory_path: Path = project_root_directory.joinpath("downloads")
 
-default_video_download_directory_path: Path = downloads_folder_directory_path.joinpath("video")
-default_video_only_download_directory_path: Path = downloads_folder_directory_path.joinpath("video_only")
-default_audio_download_directory_path: Path = downloads_folder_directory_path.joinpath("audio_only")
-default_best_of_both_download_directory_path: Path = downloads_folder_directory_path.joinpath("best_of_both")
+default_video_download_directory_path: Path = downloads_directory_path.joinpath("video")
+default_video_only_download_directory_path: Path = downloads_directory_path.joinpath("video_only")
+default_audio_download_directory_path: Path = downloads_directory_path.joinpath("audio_only")
+default_best_of_both_download_directory_path: Path = downloads_directory_path.joinpath("best_of_both")
 
 # constant values
 
 configuration: Configuration = load_configuration(configuration_file_path)
 
-download_formats = (
-    DownloadFormat.VIDEO, 
-    DownloadFormat.VIDEO_ONLY, 
-    DownloadFormat.AUDIO_ONLY, 
-    DownloadFormat.BEST_OF_BOTH
+select_menu_indicator = ">"
+
+download_format_options: Tuple[Option, ...] = (
+    Option(DownloadFormat.VIDEO.value, DownloadFormat.VIDEO, "Downloads both video and audio tracks but at low quality."), 
+    Option(DownloadFormat.VIDEO_ONLY.value, DownloadFormat.VIDEO_ONLY, "Downloads only the video track but at high quality."), 
+    Option(DownloadFormat.AUDIO_ONLY.value, DownloadFormat.AUDIO_ONLY, "Downloads only the audio track but at high quality."), 
+    Option(DownloadFormat.BEST_OF_BOTH.value, DownloadFormat.BEST_OF_BOTH, "Downloads both the video and audio tracks but at high quality. (tip: enable combine_best_of_both_downloads_into_one_file in the configuration file for a single file.)")
 )
 
 download_format_to_custom_download_configurations: Dict[DownloadFormat, DownloadConfiguration] = {
@@ -86,74 +89,85 @@ download_format_to_custom_download_configurations: Dict[DownloadFormat, Download
     }
 }
 
+
 def main() -> None:
     if not configuration_file_path.exists(): 
         create_configuration_file(configuration_file_path)
-    if not temp_files_directory_path.exists(): 
-        temp_files_directory_path.mkdir()
-    if not to_download_file.exists(): 
-        to_download_file.touch()
 
-    downloader: Downloader = Downloader(configuration, temp_files_directory_path)
+    temporary_files_directory_path.mkdir(exist_ok=True)
+    to_download_file.touch()
 
-    if not configuration["warning_configuration"]["silence_undeleted_temp_file_warning"]:
-        number_of_existing_temp_files: int = len([
-            file for file in temp_files_directory_path.iterdir() if file.is_file()
-        ])
-
-        if number_of_existing_temp_files > 0: 
-            spaced_print(f"WARNING: You have {number_of_existing_temp_files} undeleted temp file(s)!")
+    downloader: Downloader = Downloader(configuration, temporary_files_directory_path)
 
     spaced_print(f"Cadmium - v{__version__}")
 
-    while True:
-        print(f"Download formats: ({ ', '.join(download_formats) })")
-        download_format_input: str = spaced_input("Select the format the media will be downloaded as: ").upper() # TODO: use a menu and validate input to prevent a key error
+    if not configuration["warning_configuration"]["silence_undeleted_temp_file_warning"]:
+        number_of_existing_temp_files: int = len([
+            file for file in temporary_files_directory_path.iterdir() if file.is_file()
+        ])
 
-        download_format = DownloadFormat[download_format_input]
+        if number_of_existing_temp_files > 0: 
+            spaced_print(f"WARNING: You have {number_of_existing_temp_files} temporary file(s)!")
+
+    while True:
+        download_format: DownloadFormat = pick(
+            download_format_options, 
+            "Pick which format should the media be downloaded as", 
+            indicator=select_menu_indicator
+        )[0].value # type: ignore
 
         download_configuration = download_format_to_custom_download_configurations[download_format]
         download_directory: Path
 
         if (not download_configuration["use_custom_download_location"]):
+            downloads_directory_path.mkdir(exist_ok=True)
+            download_configuration["default_download_location"].mkdir(exist_ok=True)
+
             download_directory = download_configuration["default_download_location"]
         else:
             custom_download_directory = download_configuration["custom_download_location"]
 
             if (custom_download_directory == None):
-                print("path is empty")
-                exit(1)
+                raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "is empty")
 
             download_directory = Path(custom_download_directory).resolve()
 
             if (not download_directory.exists()):
-                print("path is not valid")
-                exit(1)
+                raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "does not exist")
+            
+            if (not download_directory.is_file()):
+                raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "is a file")
 
         urls: List[str]
 
         with to_download_file.open("r") as file:
-            urls = [line.removesuffix("\n") for line in file.readlines() if not line.isspace()]
+            urls = [ line.removesuffix("\n") for line in file.readlines() if not line.isspace() ]
 
         for url in urls:
             mediaType = parse_youtube_link_type(url)
 
+            spaced_print(f"Now downloading {mediaType.value} ({url})")
+
             if (mediaType == MediaType.VIDEO):
-                youtube_video_title, download_path = downloader.download_video(url, download_format, download_directory)
-                spaced_print(f"Video ({youtube_video_title}) was downloaded successfully! ({download_path})")
+                result = downloader.download_video(url, download_format, download_directory)
+
+                if not result["success"]:
+                    spaced_print(result["error_message"])
+                    continue
+                
+                spaced_print(f"\nVideo ({result["youtube_video_title"]}) was downloaded successfully! ({result["download_path"]})")
             else:
-                playlist_name, download_path = downloader.download_playlist(url, download_format, download_directory)
-                spaced_print(f"Playlist ({playlist_name}) was downloaded successfully! ({download_path})")
+                result = downloader.download_playlist(url, download_format, download_directory)
+                spaced_print(f"\nPlaylist ({result["playlist_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
 
 
-        download_again_user_response: str = spaced_input("Would you like to download anything else? (y/n) ").lower()
+        run_program_again: str = pick(
+            ("Yes", "No"), 
+            "Would you like to run the program again?", 
+            indicator=select_menu_indicator
+        )[0] # type: ignore
 
-        if download_again_user_response == "y":
-            pass
-        elif download_again_user_response == "n":
-            break
-        else:
-            spaced_print("Invalid input given! Defaulted to n...")
+        if run_program_again == "No":
             break
 
 if __name__ == "__main__":
@@ -161,10 +175,8 @@ if __name__ == "__main__":
         main()
     except BotDetection:
         spaced_print("Cadmium was detected as a bot, please refrain from downloading more videos for a while to prevent getting limited or blocked.")
-    except (SettingNotFoundError, PathDoesNotExistError, DownloadDirectoryIsAFileError, SettingCorruptError) as exception:
+    except (InvalidSettingError, ConfigurationFileCorruptError) as exception:
         spaced_print(str(exception))
-    except (FFmpegError, PytubeFixError) as exception:
-        spaced_print(f"Exception: {exception.__class__.__name__}: {exception}")
     except KeyboardInterrupt:
         exit(0)
     except BaseException as exception:
