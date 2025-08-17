@@ -1,7 +1,10 @@
-from typing import Dict, List, Literal, Optional, Tuple
+from pathlib import Path
+from typing import Callable, Dict, List, Literal, Optional, Tuple
 
 from platform import system
 from re import sub as re_sub
+
+from core.lib.clear_directory_display import ClearDirectoryDisplay
 
 
 def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
@@ -69,3 +72,21 @@ def safe_full_filename(full_filename: str, fallback_filename: str, filename_pref
         safe_filename: str = safe_os_name(filename, fallback_filename, max_filename_length)
 
         return f"{filename_prefix}{safe_filename}.{file_extension}"
+
+
+def count_directory_files(path: Path, with_extensions: List[str]) -> int:
+    return len([
+        file for file in path.iterdir() if file.is_file() and file.suffix in with_extensions
+    ])
+
+
+def clear_directory_files(path: Path, with_extensions: List[str], on_progress: Optional[Callable[[int], None]]):
+    files_to_remove = [
+        file for file in path.iterdir() if file.is_file() and file.suffix in with_extensions
+    ]
+
+    for file_number, file in enumerate(files_to_remove, 1):
+        file.unlink()
+
+        if on_progress:
+            on_progress(file_number)
