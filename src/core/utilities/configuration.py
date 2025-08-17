@@ -24,7 +24,8 @@ default_configuration: Configuration = {
         "convert_video_only_downloads_to_mp4": True,
         "convert_audio_only_downloads_to_mp3": True,
         "combine_best_of_both_downloads_into_one_file": False,
-        "display_chosen_stream_on_start_of_download": True
+        "display_chosen_stream_on_start_of_download": True,
+        "clear_temporary_files_before_exiting": False
     },
     "warning_configuration": {
         "silence_undeleted_temp_file_warning": False,
