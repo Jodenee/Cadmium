@@ -324,10 +324,11 @@ class Downloader:
             )
 
             true_download_directory: Path = download_directory / safe_folder_name
-            true_download_directory.mkdir(exist_ok=True)
 
             if true_download_directory.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
                 raise VideoDownloadSkipped(youtube_video.title, download_directory)
+
+            true_download_directory.mkdir(exist_ok=True)
 
             self._download_video_only(
                 youtube_video=youtube_video,
