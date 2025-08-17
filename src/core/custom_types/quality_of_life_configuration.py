@@ -9,3 +9,4 @@ class QualityOfLifeConfiguration(TypedDict):
     convert_audio_only_downloads_to_mp3: bool
     combine_best_of_both_downloads_into_one_file: bool
     display_chosen_stream_on_start_of_download: bool
+    clear_temporary_files_before_exiting: bool
