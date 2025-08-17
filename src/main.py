@@ -34,9 +34,11 @@ from pick import Option, pick
 from core.enums import DownloadFormat, MediaType
 from core.exceptions import InvalidSettingError, ConfigurationFileCorruptError
 from core.custom_types import Configuration, DownloadConfiguration
+from core.lib import ClearDirectoryDisplay
 from core.utilities.configuration import load_configuration, create_configuration_file
 from core.utilities.console import spaced_print
 from core.utilities.download import Downloader
+from core.utilities.os import clear_directory_files, count_directory_files
 from core.utilities.validation import parse_youtube_link_type
 
 # Required + default files/directories
@@ -56,6 +58,8 @@ default_best_of_both_download_directory_path: Path = downloads_directory_path.jo
 # constant values
 
 configuration: Configuration = load_configuration(configuration_file_path)
+
+temporary_file_extensions = [ ".webp", ".m4a", ".mp4", ".mp3" ]
 
 select_menu_indicator = ">"
 
@@ -102,9 +106,7 @@ def main() -> None:
     spaced_print(f"Cadmium - v{__version__}")
 
     if not configuration["warning_configuration"]["silence_undeleted_temp_file_warning"]:
-        number_of_existing_temp_files: int = len([
-            file for file in temporary_files_directory_path.iterdir() if file.is_file()
-        ])
+        number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
 
         if number_of_existing_temp_files > 0: 
             spaced_print(f"WARNING: You have {number_of_existing_temp_files} temporary file(s)!")
@@ -119,7 +121,7 @@ def main() -> None:
         download_configuration = download_format_to_custom_download_configurations[download_format]
         download_directory: Path
 
-        if (not download_configuration["use_custom_download_location"]):
+        if not download_configuration["use_custom_download_location"]:
             downloads_directory_path.mkdir(exist_ok=True)
             download_configuration["default_download_location"].mkdir(exist_ok=True)
 
@@ -167,8 +169,20 @@ def main() -> None:
             indicator=select_menu_indicator
         )[0] # type: ignore
 
-        if run_program_again == "No":
-            break
+        if run_program_again == "Yes":
+            continue
+
+        # remove temporary files if enabled before exiting
+        if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
+            total_files_to_remove = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
+            clear_directory_display = ClearDirectoryDisplay(temporary_files_directory_path, total_files_to_remove)
+
+            clear_directory_files(temporary_files_directory_path, temporary_file_extensions, clear_directory_display.on_progress)
+
+            clear_directory_display.progress_bar.close()
+        
+        break
+                    
 
 if __name__ == "__main__":
     try:
