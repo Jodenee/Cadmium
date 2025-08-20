@@ -4,8 +4,6 @@ from typing import Callable, Dict, List, Literal, Optional, Tuple
 from platform import system
 from re import sub as re_sub
 
-from core.lib.clear_directory_display import ClearDirectoryDisplay
-
 
 def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
     replace_regex: Dict[str, str] = {
