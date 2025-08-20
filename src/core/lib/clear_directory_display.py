@@ -1,18 +1,22 @@
 from pathlib import Path
 
-from tqdm import tqdm
+from tqdm.asyncio import tqdm
+
+from core.custom_types import Configuration
 
 from ..enums import Colours
 
 class ClearDirectoryDisplay:
-    def __init__(self, directory: Path, total_files: int) -> None:
+    def __init__(self, description: str, total_files: int, configuration: Configuration) -> None:
+        custom_colour = configuration["ui_configuration"]["custom_clear_directory_bar_colour"]
+
+        print() # print new line before progress bar
         self.progress_bar: tqdm = tqdm(
-            desc=f"Clearing ({directory})", 
+            desc=description, 
             total=total_files, 
-            colour=Colours.CADMIUM_YELLOW.value, 
+            colour=custom_colour if custom_colour and len(custom_colour) > 0 else Colours.CADMIUM_YELLOW.value, 
             unit="file"
         )
-        self.directory = directory
 
     def on_progress(self, file_number: int):
         self.progress_bar.n = file_number
