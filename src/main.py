@@ -24,12 +24,14 @@ SOFTWARE.
 
 __version__ = "0.0.0"
 
-from pytubefix.exceptions import BotDetection
+import asyncio
 
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 from pick import Option, pick
+
+from pytubefix.exceptions import BotDetection
 
 from core.enums import DownloadFormat, MediaType
 from core.exceptions import InvalidSettingError, ConfigurationFileCorruptError
@@ -94,7 +96,7 @@ download_format_to_custom_download_configurations: Dict[DownloadFormat, Download
 }
 
 
-def main() -> None:
+async def main() -> None:
     if not configuration_file_path.exists(): 
         create_configuration_file(configuration_file_path)
 
@@ -103,7 +105,7 @@ def main() -> None:
 
     downloader: Downloader = Downloader(configuration, temporary_files_directory_path)
 
-    spaced_print(f"Cadmium - v{__version__}")
+    print(f"Cadmium - v{__version__}")
 
     if not configuration["warning_configuration"]["silence_undeleted_temp_file_warning"]:
         number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
@@ -151,16 +153,16 @@ def main() -> None:
             spaced_print(f"Now downloading {mediaType.value} ({url})")
 
             if (mediaType == MediaType.VIDEO):
-                result = downloader.download_video(url, download_format, download_directory)
+                result = await downloader.download_video(url, download_format, download_directory)
 
                 if not result["success"]:
                     spaced_print(result["error_message"])
                     continue
                 
-                spaced_print(f"\nVideo ({result["youtube_video_title"]}) was downloaded successfully! ({result["download_path"]})")
+                spaced_print(f"Video ({result["youtube_video_title"]}) was downloaded successfully! ({result["download_path"]})")
             else:
-                result = downloader.download_playlist(url, download_format, download_directory)
-                spaced_print(f"\nPlaylist ({result["playlist_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
+                result = await downloader.download_playlist(url, download_format, download_directory)
+                spaced_print(f"Playlist ({result["playlist_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
 
 
         run_program_again: str = pick(
@@ -175,7 +177,11 @@ def main() -> None:
         # remove temporary files if enabled before exiting
         if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
             total_files_to_remove = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
-            clear_directory_display = ClearDirectoryDisplay(temporary_files_directory_path, total_files_to_remove)
+            clear_directory_display = ClearDirectoryDisplay(
+                f"Clearing ({temporary_files_directory_path})", 
+                total_files_to_remove, 
+                configuration
+            )
 
             clear_directory_files(temporary_files_directory_path, temporary_file_extensions, clear_directory_display.on_progress)
 
@@ -186,7 +192,7 @@ def main() -> None:
 
 if __name__ == "__main__":
     try:
-        main()
+        asyncio.run(main())
     except BotDetection:
         spaced_print("Cadmium was detected as a bot, please refrain from downloading more videos for a while to prevent getting limited or blocked.")
     except (InvalidSettingError, ConfigurationFileCorruptError) as exception:
