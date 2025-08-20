@@ -6,3 +6,4 @@ from .warning_configuration import WarningConfiguration
 from .configuration import Configuration
 from .video_download_result import VideoDownloadResult
 from .playlist_download_result import PlaylistDownloadResult
+from .ui_configuration import UIConfiguration
