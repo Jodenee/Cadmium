@@ -1,15 +1,20 @@
 from typing import Optional
-from pytubefix import YouTube, Stream
+from pytubefix.async_youtube import AsyncYouTube, Stream
 
-from tqdm import tqdm
+from tqdm.asyncio import tqdm
+
+from core.custom_types.configuration import Configuration
 from ..enums import Colours
 
 class MediaDownloadDisplay:
-    def __init__(self, youtube_video: YouTube, stream_size_in_bytes: int, custom_description: Optional[str] = None) -> None:
+    def __init__(self, description: str, stream_size_in_bytes: int, configuration: Configuration) -> None:
+        custom_colour = configuration["ui_configuration"]["custom_download_bar_colour"]
+        
+        print() # print new line before progress bar
         self.progress_bar: tqdm = tqdm(
-            desc=f"Downloading ({youtube_video.title})" if custom_description == None else custom_description, 
+            desc=description, 
             total=stream_size_in_bytes, 
-            colour=Colours.CADMIUM_RED, 
+            colour=custom_colour if custom_colour and len(custom_colour) > 0 else Colours.CADMIUM_RED.value, 
             unit="B",
             unit_scale=True, 
             unit_divisor=1024
@@ -21,4 +26,3 @@ class MediaDownloadDisplay:
 
         self.progress_bar.n = total_bytes_downloaded
         self.progress_bar.refresh()
-
