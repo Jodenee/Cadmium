@@ -30,6 +30,11 @@ default_configuration: Configuration = {
     "warning_configuration": {
         "silence_undeleted_temp_file_warning": False,
         "silence_already_exists_warning": False
+    },
+    "ui_configuration": {
+        "custom_download_bar_colour": None,
+        "custom_convert_bar_colour": None,
+        "custom_clear_directory_bar_colour": None
     }
 }
 
