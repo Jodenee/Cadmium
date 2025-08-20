@@ -1,6 +1,5 @@
 from typing import List, Optional, TypedDict
 
-from pytubefix import YouTube
 from pathlib import Path
 
 class PlaylistDownloadResult(TypedDict):
