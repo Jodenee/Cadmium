@@ -5,11 +5,9 @@
 .vscode
 .idea
 
-# Ignore specific file types
-*.mp3
-*.mp4
-*.webm
-*.m4a
+# Ignore folders
+downloads
+temporary_files
 
 # Ignore download text file
 to_download.txt
