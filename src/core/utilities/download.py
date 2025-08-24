@@ -1,14 +1,16 @@
-from typing import List, Optional
+from typing import List, Optional,cast
 
 from pytubefix.async_youtube import AsyncYouTube
 from pytubefix import Playlist, Stream, StreamQuery
 from ffmpeg import FFmpeg
 from pathlib import Path
 
+from core.utilities.pytubefix_extensions import stream_default_filename, stream_repr
+
 from ..lib import MediaDownloadDisplay, MediaConversionDisplay
 from ..custom_types import Configuration, VideoDownloadResult, PlaylistDownloadResult
 from ..enums import DownloadFormat
-from ..exceptions import NoStreamsFoundError, VideoDownloadSkipped, DownloadCancelled
+from ..exceptions import NoStreamsFoundError, VideoDownloadSkipped, DownloadCancelled, InvalidSettingError
 from .console import spaced_print
 from .os import safe_full_filename, safe_os_name
 
@@ -105,11 +107,18 @@ class Downloader:
 
         if stream == None:
             raise NoStreamsFoundError(await youtube_video.title())
+        
+        should_convert = self.configuration["download_behavior_configuration"]["convert_video_downloads"] 
+        video_custom_file_extension = self.configuration["download_behavior_configuration"]["convert_video_downloads_to"]
+
+        if video_custom_file_extension == None or len(video_custom_file_extension.strip()) == 0 and should_convert:
+            raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
 
         safe_filename = safe_full_filename(
-            full_filename=stream.default_filename, 
+            full_filename=await stream_default_filename(stream), 
             fallback_filename=f"Video ({youtube_video.video_id})", 
-            filename_prefix=filename_prefix
+            filename_prefix=filename_prefix,
+            extension_override=None if not should_convert else video_custom_file_extension
         )
         video_full_file_path = download_directory / safe_filename
 
@@ -117,7 +126,7 @@ class Downloader:
             raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
 
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
-            spaced_print(f"Chosen video chosen_stream: {stream}")
+            spaced_print(f"Chosen stream info: {stream_repr(stream)}")
 
         download_display = MediaDownloadDisplay(
             f"Downloading ({await youtube_video.title()})", 
@@ -126,64 +135,24 @@ class Downloader:
         )
         youtube_video.register_on_progress_callback(download_display.show_progress_callback)
 
-        download_path: Optional[str] = stream.download(
-            output_path=str(download_directory), 
-            skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
-            filename=safe_filename
-        )
-        download_display.progress_bar.close()
-
-        if (download_path == None):
-            raise DownloadCancelled(await youtube_video.title())
-        
-        return Path(download_path)
-    
-
-    async def _download_video_only(self, youtube_video: AsyncYouTube, download_directory: Path, filename_prefix: Optional[str] = None) -> Path:
-        stream: Optional[Stream] = (await youtube_video.streams()).filter(is_dash=True, only_video=True).first()
-
-        if (stream == None):
-            raise NoStreamsFoundError(await youtube_video.title())
-        
-        safe_filename = safe_full_filename(
-            full_filename=stream.default_filename, 
-            fallback_filename=f"Video ({youtube_video.video_id})", 
-            filename_prefix=filename_prefix,
-            extension_override="mp4" if self.configuration["quality_of_life_configuration"]["convert_video_only_downloads_to_mp4"] else None
-        )
-        safe_full_video_file_path = download_directory / safe_filename
-        
-        if safe_full_video_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-            raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
-
-        if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
-            spaced_print(f"Chosen video only chosen_stream: {stream}")
-
-        download_display = MediaDownloadDisplay(
-            f"Downloading ({await youtube_video.title()})", 
-            stream.filesize, 
-            self.configuration
-        )
-        youtube_video.register_on_progress_callback(download_display.show_progress_callback)
-
-        if not self.configuration["quality_of_life_configuration"]["convert_video_only_downloads_to_mp4"] and stream.mime_type == "video/mp4":
-            download_file_path = stream.download(
-                output_path=str(download_directory),
+        if not should_convert:
+            download_path: Optional[str] = stream.download(
+                output_path=str(download_directory), 
                 skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
                 filename=safe_filename
             )
             download_display.progress_bar.close()
 
-            if (download_file_path == None):
-                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
-
-            return Path(download_file_path)
+            if (download_path == None):
+                raise DownloadCancelled(await youtube_video.title())
+        
+            return Path(download_path)
         else:
             temp_file_download_path: Optional[str] = stream.download(
                 output_path=str(self.temporary_files_directory_path),
                 skip_existing=False,
                 filename=safe_full_filename(
-                    full_filename=stream.default_filename, 
+                    full_filename=await stream_default_filename(stream), 
                     fallback_filename=f"Video ({youtube_video.video_id})", 
                     filename_prefix="Video-"
                 )
@@ -204,7 +173,96 @@ class Downloader:
             )
 
             conversion_display = MediaConversionDisplay(
-                f"Converting ({await youtube_video.title()}) to (mp4)",
+                f"Converting ({await youtube_video.title()}) to ({video_custom_file_extension})",
+                stream, 
+                ffmpeg, 
+                self.configuration
+            )
+            ffmpeg.on("progress", conversion_display.on_progress)
+            
+            ffmpeg.execute()
+
+            conversion_display.progress_bar.n = conversion_display.progress_bar.total
+            conversion_display.progress_bar.refresh()
+
+            conversion_display.progress_bar.close()
+            spaced_print("Conversion was successful!")
+
+            return converted_file_path    
+    
+
+    async def _download_video_only(self, youtube_video: AsyncYouTube, download_directory: Path, filename_prefix: Optional[str] = None) -> Path:
+        stream: Optional[Stream] = (await youtube_video.streams()).filter(is_dash=True, only_video=True).first()
+
+        if (stream == None):
+            raise NoStreamsFoundError(await youtube_video.title())
+        
+        should_convert = self.configuration["download_behavior_configuration"]["convert_video_only_downloads"] 
+        video_only_custom_file_extension = self.configuration["download_behavior_configuration"]["convert_video_only_downloads_to"]
+        
+        if video_only_custom_file_extension == None or len(video_only_custom_file_extension.strip()) == 0 and should_convert:
+            raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
+        
+        safe_filename = safe_full_filename(
+            full_filename=await stream_default_filename(stream),
+            fallback_filename=f"Video ({youtube_video.video_id})", 
+            filename_prefix=filename_prefix,
+            extension_override=None if not should_convert else video_only_custom_file_extension
+        )
+        safe_full_video_file_path = download_directory / safe_filename
+        
+        if safe_full_video_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
+            raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+
+        if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
+            spaced_print(f"Chosen stream info: {stream_repr(stream)}")
+
+        download_display = MediaDownloadDisplay(
+            f"Downloading ({await youtube_video.title()})", 
+            stream.filesize, 
+            self.configuration
+        )
+        youtube_video.register_on_progress_callback(download_display.show_progress_callback)
+
+        if not should_convert:
+            download_file_path = stream.download(
+                output_path=str(download_directory),
+                skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
+                filename=safe_filename
+            )
+            download_display.progress_bar.close()
+
+            if (download_file_path == None):
+                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+
+            return Path(download_file_path)
+        else:
+            temp_file_download_path: Optional[str] = stream.download(
+                output_path=str(self.temporary_files_directory_path),
+                skip_existing=False,
+                filename=safe_full_filename(
+                    full_filename=await stream_default_filename(stream), 
+                    fallback_filename=f"Video ({youtube_video.video_id})", 
+                    filename_prefix="Video-"
+                )
+            )
+            download_display.progress_bar.close()
+
+            if temp_file_download_path == None:
+                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+                
+            download_file_path = Path(temp_file_download_path)
+            converted_file_path: Path = download_directory / safe_filename
+
+            ffmpeg = (
+                FFmpeg()
+                .option("y")
+                .input(download_file_path)
+                .output(converted_file_path)
+            )
+
+            conversion_display = MediaConversionDisplay(
+                f"Converting ({await youtube_video.title()}) to ({video_only_custom_file_extension})",
                 stream, 
                 ffmpeg, 
                 self.configuration
@@ -228,11 +286,17 @@ class Downloader:
         if stream == None:
             raise NoStreamsFoundError(await youtube_video.title())
         
+        should_convert = self.configuration["download_behavior_configuration"]["convert_audio_only_downloads"] 
+        video_custom_file_extension = self.configuration["download_behavior_configuration"]["convert_audio_only_downloads_to"]
+
+        if video_custom_file_extension == None or len(video_custom_file_extension.strip()) == 0 and should_convert:
+            raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
+
         safe_filename = safe_full_filename(
-            full_filename=stream.default_filename, 
+            full_filename=await stream_default_filename(stream), 
             fallback_filename=f"Video ({youtube_video.video_id})", 
             filename_prefix=filename_prefix,
-            extension_override="mp3" if self.configuration["quality_of_life_configuration"]["convert_audio_only_downloads_to_mp3"] else None
+            extension_override=None if not should_convert else video_custom_file_extension
         )
         safe_full_audio_file_path = download_directory / safe_filename
         
@@ -240,7 +304,7 @@ class Downloader:
             raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
 
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
-            spaced_print(f"Chosen audio only chosen_stream: {stream}")
+            spaced_print(f"Chosen stream info: {stream_repr(stream)}")
 
         download_display = MediaDownloadDisplay(
             f"Downloading ({await youtube_video.title()})", 
@@ -249,7 +313,7 @@ class Downloader:
         )
         youtube_video.register_on_progress_callback(download_display.show_progress_callback)
 
-        if not self.configuration["quality_of_life_configuration"]["convert_audio_only_downloads_to_mp3"]:
+        if not self.configuration["download_behavior_configuration"]["convert_audio_only_downloads"]:
             download_file_location: Optional[str] = stream.download(
                 output_path=str(download_directory),
                 skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
@@ -266,9 +330,9 @@ class Downloader:
 
             download_file_location: Optional[str] = stream.download(
                 output_path=str(true_download_directory),
-                skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
+                skip_existing=True,
                 filename=safe_full_filename(
-                    full_filename=stream.default_filename, 
+                    full_filename=await stream_default_filename(stream), 
                     fallback_filename=f"Video ({youtube_video.video_id})", 
                     filename_prefix="Audio-"
                 )
@@ -289,7 +353,7 @@ class Downloader:
             )          
 
             conversion_display = MediaConversionDisplay(
-                f"Converting ({await youtube_video.title()}) to (mp3)",
+                f"Converting ({await youtube_video.title()}) to ({video_custom_file_extension})",
                 stream, 
                 ffmpeg, 
                 self.configuration
@@ -308,7 +372,7 @@ class Downloader:
 
 
     async def _download_best_of_both(self, youtube_video: AsyncYouTube, download_directory: Path, filename_prefix: Optional[str] = None) -> Path:    
-        if not self.configuration["quality_of_life_configuration"]["combine_best_of_both_downloads_into_one_file"]:
+        if not self.configuration["download_behavior_configuration"]["merge_best_of_both_downloads_into_one_file"]:
             safe_folder_name = safe_os_name(
                 await youtube_video.title(),
                 f"Video ({youtube_video.video_id})"
@@ -344,20 +408,25 @@ class Downloader:
             if audio_stream == None:
                 raise NoStreamsFoundError(await youtube_video.title())
             
-            merged_file_name = safe_full_filename(
-                full_filename=video_stream.default_filename,
+            merged_file_extension = self.configuration["download_behavior_configuration"]["best_of_both_merged_file_format"]
+
+            if merged_file_extension == None or len(merged_file_extension.strip()) == 0:
+                raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
+            
+            merged_filename = safe_full_filename(
+                full_filename=await stream_default_filename(video_stream),
                 fallback_filename=f"Video ({youtube_video.video_id})",
                 filename_prefix=filename_prefix,
-                extension_override="mp4"
+                extension_override=merged_file_extension
             )
-            merged_file_path = download_directory / merged_file_name
+            merged_file_path = download_directory / merged_filename
 
             if merged_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
                 raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
 
             if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
-                spaced_print(f"Chosen video only chosen_stream: {video_stream}")
-                spaced_print(f"Chosen audio only chosen_stream: {audio_stream}")
+                spaced_print(f"Chosen video stream info: {stream_repr(video_stream)}")
+                spaced_print(f"Chosen audio stream info: {stream_repr(audio_stream)}")
 
             video_download_display = MediaDownloadDisplay(
                 f"Downloading ({await youtube_video.title()})", 
@@ -370,7 +439,7 @@ class Downloader:
                 output_path=str(self.temporary_files_directory_path), 
                 skip_existing=False,
                 filename=safe_full_filename(
-                    full_filename=video_stream.default_filename, 
+                    full_filename=await stream_default_filename(video_stream), 
                     fallback_filename=f"Video ({youtube_video.video_id})", 
                     filename_prefix="Video-"
                 )
@@ -388,7 +457,7 @@ class Downloader:
                 output_path=str(self.temporary_files_directory_path), 
                 skip_existing=False,
                 filename=safe_full_filename(
-                    full_filename=audio_stream.default_filename, 
+                    full_filename=await stream_default_filename(audio_stream),
                     fallback_filename=f"Video ({youtube_video.video_id})", 
                     filename_prefix="Audio-"
                 )
@@ -397,15 +466,6 @@ class Downloader:
 
             if (video_only_file_path == None or audio_only_file_path == None):
                 raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
-
-            merged_file_path: Path = download_directory.joinpath(
-                safe_full_filename(
-                    full_filename=video_stream.default_filename,
-                    fallback_filename=f"Video ({youtube_video.video_id})",
-                    filename_prefix=filename_prefix,
-                    extension_override="mp4"
-                )
-            )
 
             if merged_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
                 if not self.configuration["warning_configuration"]["silence_already_exists_warning"]:
@@ -422,7 +482,7 @@ class Downloader:
             )
 
             conversion_display = MediaConversionDisplay(
-                f"Merging ({video_stream.title})",
+                f"Merging ({await youtube_video.title()})",
                 video_stream, 
                 ffmpeg, 
                 self.configuration
