@@ -6,7 +6,15 @@ from ..custom_types import Configuration
 
 default_configuration: Configuration = {
     "download_behavior_configuration": {
-        "skip_existing_files": True
+        "skip_existing_files": True,
+        "convert_video_downloads": False,
+        "convert_video_only_downloads": False,
+        "convert_audio_only_downloads": False,
+        "merge_best_of_both_downloads_into_one_file": False,
+        "convert_video_downloads_to": "mp4",
+        "convert_video_only_downloads_to": "mp4",
+        "convert_audio_only_downloads_to": "mp3",
+        "best_of_both_merged_file_format": "mp4"
     },
     "quality_of_life_configuration": {
         "custom_download_locations": {
@@ -21,9 +29,6 @@ default_configuration: Configuration = {
             "custom_best_of_both_download_location": ""
         },
         "put_playlist_videos_in_folder": True,
-        "convert_video_only_downloads_to_mp4": True,
-        "convert_audio_only_downloads_to_mp3": True,
-        "combine_best_of_both_downloads_into_one_file": False,
         "display_chosen_stream_on_start_of_download": True,
         "clear_temporary_files_before_exiting": False
     },
