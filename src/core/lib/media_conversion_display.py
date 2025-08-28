@@ -2,7 +2,8 @@ from typing import Optional
 
 from pytubefix.async_youtube import Stream
 from tqdm.asyncio import tqdm
-from ffmpeg import FFmpeg, Progress
+from ffmpeg.asyncio import FFmpeg
+from ffmpeg import Progress
 
 from core.custom_types import Configuration
 
