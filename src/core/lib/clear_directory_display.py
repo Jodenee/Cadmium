@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from tqdm.asyncio import tqdm
 
 from core.custom_types import Configuration
