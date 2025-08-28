@@ -27,7 +27,7 @@ __version__ = "0.0.0"
 import asyncio
 
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from pick import Option, pick
 
@@ -40,7 +40,7 @@ from core.lib import ClearDirectoryDisplay
 from core.utilities.configuration import load_configuration, create_configuration_file
 from core.utilities.console import spaced_print
 from core.utilities.download import Downloader
-from core.utilities.os import clear_directory_files, count_directory_files
+from core.utilities.os import clear_directory_files, count_directory_files, try_find_ffmpeg
 from core.utilities.validation import parse_youtube_link_type
 
 # Required + default files/directories
@@ -56,6 +56,7 @@ default_video_download_directory_path: Path = downloads_directory_path.joinpath(
 default_video_only_download_directory_path: Path = downloads_directory_path.joinpath("video_only")
 default_audio_download_directory_path: Path = downloads_directory_path.joinpath("audio_only")
 default_best_of_both_download_directory_path: Path = downloads_directory_path.joinpath("best_of_both")
+default_custom_download_directory_path: Path = downloads_directory_path.joinpath("custom")
 
 # constant values
 
@@ -69,32 +70,43 @@ download_format_options: Tuple[Option, ...] = (
     Option(DownloadFormat.VIDEO.value, DownloadFormat.VIDEO, "Downloads both video and audio tracks but at low quality."), 
     Option(DownloadFormat.VIDEO_ONLY.value, DownloadFormat.VIDEO_ONLY, "Downloads only the video track but at high quality."), 
     Option(DownloadFormat.AUDIO_ONLY.value, DownloadFormat.AUDIO_ONLY, "Downloads only the audio track but at high quality."), 
-    Option(DownloadFormat.BEST_OF_BOTH.value, DownloadFormat.BEST_OF_BOTH, "Downloads both the video and audio tracks but at high quality. (tip: enable combine_best_of_both_downloads_into_one_file in the configuration file for a single file.)")
+    Option(DownloadFormat.BEST_OF_BOTH.value, DownloadFormat.BEST_OF_BOTH, "Downloads both the video and audio tracks but at high quality."),
+    Option(DownloadFormat.CUSTOM.value, DownloadFormat.CUSTOM, "Downloads any streams of your choosing.")
 )
 
 download_format_to_custom_download_configurations: Dict[DownloadFormat, DownloadConfiguration] = {
     DownloadFormat.VIDEO: {
-        "use_custom_download_location": configuration["quality_of_life_configuration"]["custom_download_locations"]["use_custom_video_download_location"],
-        "custom_download_location": configuration["quality_of_life_configuration"]["custom_download_locations"]["custom_video_download_location"],
+        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_video_download_location_override"],
+        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["video_download_location_override"],
         "default_download_location": default_video_download_directory_path
     },
     DownloadFormat.VIDEO_ONLY: {
-        "use_custom_download_location": configuration["quality_of_life_configuration"]["custom_download_locations"]["use_custom_video_only_download_location"],
-        "custom_download_location": configuration["quality_of_life_configuration"]["custom_download_locations"]["custom_video_only_download_location"],
+        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_video_only_download_location_override"],
+        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["video_only_download_location_override"],
         "default_download_location": default_video_only_download_directory_path
     },
     DownloadFormat.AUDIO_ONLY: {
-        "use_custom_download_location": configuration["quality_of_life_configuration"]["custom_download_locations"]["use_custom_audio_download_location"],
-        "custom_download_location": configuration["quality_of_life_configuration"]["custom_download_locations"]["custom_audio_download_location"],
+        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_audio_download_location_override"],
+        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["audio_download_location_override"],
         "default_download_location": default_audio_download_directory_path
     },
     DownloadFormat.BEST_OF_BOTH: {
-        "use_custom_download_location": configuration["quality_of_life_configuration"]["custom_download_locations"]["use_custom_best_of_both_download_location"],
-        "custom_download_location": configuration["quality_of_life_configuration"]["custom_download_locations"]["custom_best_of_both_download_location"],
+        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_best_of_both_download_location_override"],
+        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["best_of_both_download_location_override"],
         "default_download_location": default_best_of_both_download_directory_path
+    },
+    DownloadFormat.CUSTOM: {
+        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_custom_download_location_override"],
+        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["custom_download_location_override"],
+        "default_download_location": default_custom_download_directory_path
     }
 }
 
+# find external dependencies
+
+ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration)
+
+# program
 
 async def main() -> None:
     if not configuration_file_path.exists(): 
@@ -103,7 +115,7 @@ async def main() -> None:
     temporary_files_directory_path.mkdir(exist_ok=True)
     to_download_file.touch()
 
-    downloader: Downloader = Downloader(configuration, temporary_files_directory_path)
+    downloader: Downloader = Downloader(configuration, temporary_files_directory_path, ffmpeg_executable_path)
 
     print(f"Cadmium - v{__version__}")
 
@@ -123,13 +135,13 @@ async def main() -> None:
         download_configuration = download_format_to_custom_download_configurations[download_format]
         download_directory: Path
 
-        if not download_configuration["use_custom_download_location"]:
+        if not download_configuration["use_download_location_override"]:
             downloads_directory_path.mkdir(exist_ok=True)
             download_configuration["default_download_location"].mkdir(exist_ok=True)
 
             download_directory = download_configuration["default_download_location"]
         else:
-            custom_download_directory = download_configuration["custom_download_location"]
+            custom_download_directory = download_configuration["download_location_override"]
 
             if (custom_download_directory == None):
                 raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "is empty")
