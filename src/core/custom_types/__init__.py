@@ -1,4 +1,4 @@
-from .custom_download_location_configuration import CustomDownloadLocationConfiguration
+from .download_location_overrides_configuration import DownloadLocationOverridesConfiguration
 from .download_behavior_configuration import DownloadBehaviorConfiguration
 from .download_configuration import DownloadConfiguration
 from .quality_of_life_configuration import QualityOfLifeConfiguration
@@ -7,3 +7,5 @@ from .configuration import Configuration
 from .video_download_result import VideoDownloadResult
 from .playlist_download_result import PlaylistDownloadResult
 from .ui_configuration import UIConfiguration
+from .external_dependency_configuration import ExternalDependencyConfiguration
+from .ffmpeg_configuration import FFmpegConfiguration
