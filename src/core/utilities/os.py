@@ -1,8 +1,15 @@
+from os import environ
+
+import os
 from pathlib import Path
 from typing import Callable, Dict, List, Literal, Optional, Tuple
 
 from platform import system
 from re import sub as re_sub
+
+from core.custom_types.configuration import Configuration
+from core.exceptions.invalid_setting_error import InvalidSettingError
+from core.utilities.console import spaced_print
 
 
 def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
@@ -88,3 +95,23 @@ def clear_directory_files(path: Path, with_extensions: List[str], on_progress: O
 
         if on_progress:
             on_progress(file_number)
+
+def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
+    system_path_variables = os.environ.get("PATH", "").split(";")
+
+    if configuration["external_dependency_configuration"]["FFmpeg"]["try_find_ffmpeg_path_automatically"] and not configuration["external_dependency_configuration"]["FFmpeg"]["ffmpeg_executable_path"]:
+        for path in system_path_variables:
+            ffmpeg_path = Path(path) / "ffmpeg.exe"
+
+            if ffmpeg_path.exists():
+                return ffmpeg_path
+    else:
+        raw_ffmpeg_path = configuration["external_dependency_configuration"]["FFmpeg"]["ffmpeg_executable_path"]
+
+        if raw_ffmpeg_path:
+            ffmpeg_path = Path(raw_ffmpeg_path)
+
+            if not ffmpeg_path.exists():
+                raise InvalidSettingError("ffmpeg_path", f"{raw_ffmpeg_path} does not exist")
+            
+            return ffmpeg_path
