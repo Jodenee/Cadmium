@@ -1,5 +1,4 @@
-from typing import Optional
-from pytubefix.async_youtube import AsyncYouTube, Stream
+from pytubefix.async_youtube import Stream
 
 from tqdm.asyncio import tqdm
 
