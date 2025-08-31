@@ -28,6 +28,7 @@ import asyncio
 
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+from traceback import format_exc as get_traceback
 
 from pick import Option, pick
 
@@ -164,7 +165,7 @@ async def main() -> None:
 
             spaced_print(f"Now downloading {mediaType.value} ({url})")
 
-            if (mediaType == MediaType.VIDEO):
+            if mediaType == MediaType.VIDEO:
                 result = await downloader.download_video(url, download_format, download_directory)
 
                 if not result["success"]:
@@ -172,9 +173,12 @@ async def main() -> None:
                     continue
                 
                 spaced_print(f"Video ({result["youtube_video_title"]}) was downloaded successfully! ({result["download_path"]})")
-            else:
+            elif mediaType == MediaType.PLAYLIST:
                 result = await downloader.download_playlist(url, download_format, download_directory)
                 spaced_print(f"Playlist ({result["playlist_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
+            else:
+                result = await downloader.download_channel(url, download_format, download_directory)
+                spaced_print(f"Channel ({result["channel_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
 
 
         run_program_again: str = pick(
@@ -212,7 +216,11 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         exit(0)
     except BaseException as exception:
-        spaced_print(f"Unexpected exception was raised. Please make an issue on the github with this error. \n{exception.__class__.__name__}: {exception}")
+        spaced_print(
+            f"Unexpected exception was raised. Please make an issue on the GitHub with the following error.\n"
+            f"{exception.__class__.__name__}: {exception}\n\n"
+            f"Full Traceback:\n{get_traceback()}"
+        )
     else:
         exit(0)
         
