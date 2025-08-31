@@ -1,11 +1,12 @@
-from typing import List, Optional, Tuple,cast
+from typing import Any, Generator, List, Optional, Tuple,cast
 
 from pick import pick, Option
 from pytubefix.async_youtube import AsyncYouTube
-from pytubefix import Playlist, Stream, StreamQuery
+from pytubefix import YouTube, Playlist, Stream, StreamQuery, Channel
 from ffmpeg.asyncio import FFmpeg
 from pathlib import Path
 
+from core.custom_types.channel_download_result import ChannelDownloadResult
 from core.utilities.pytubefix_extensions import stream_default_filename, stream_repr
 
 from ..lib import MediaDownloadDisplay, MediaConversionDisplay
@@ -72,14 +73,12 @@ class Downloader:
         download_directory: Path
     ) -> PlaylistDownloadResult:
         playlist: Playlist = Playlist(playlist_url)
-        true_download_directory: Path
+        true_download_directory: Path = download_directory
 
         if self.configuration["quality_of_life_configuration"]["put_playlist_videos_in_folder"]:
             true_download_directory = download_directory.joinpath(safe_os_name(playlist.title, f"Playlist ({playlist.playlist_id})"))
 
             if not true_download_directory.exists(): true_download_directory.mkdir()
-        else:
-            true_download_directory = download_directory
 
         failed_downloads: List[str] = []
 
@@ -100,6 +99,46 @@ class Downloader:
         return {
             "success": True,
             "playlist_name": str(playlist.title),
+            "failed_downloads": failed_downloads,
+            "download_directory_path": true_download_directory,
+            "error_message": None
+        }
+    
+    async def download_channel(
+        self, 
+        channel_url: str, 
+        download_format: DownloadFormat, 
+        download_directory: Path
+    ) -> ChannelDownloadResult:
+        channel: Channel = Channel(channel_url)
+        true_download_directory: Path = download_directory
+
+        if self.configuration["quality_of_life_configuration"]["put_channel_videos_in_folder"]:
+            true_download_directory = download_directory.joinpath(safe_os_name(channel.channel_name, f"Channel ({channel.channel_id})"))
+
+            if not true_download_directory.exists(): 
+                true_download_directory.mkdir()
+
+        failed_downloads = []
+
+        video: YouTube
+        for video in cast(Generator[YouTube, Any, None], channel.url_generator()):
+            video_download_result = await self.download_video(
+                youtube_video_url=video.watch_url, 
+                download_format=download_format, 
+                download_directory=true_download_directory
+            )
+
+            if not video_download_result["success"]:
+                spaced_print(video_download_result["error_message"])
+                failed_downloads += video.watch_url
+                continue
+
+            spaced_print(f"Video ({video_download_result["youtube_video_title"]}) was downloaded successfully! ({video_download_result["error_message"]})")
+
+        return {
+            "success": True,
+            "channel_name": channel.channel_url,
             "failed_downloads": failed_downloads,
             "download_directory_path": true_download_directory,
             "error_message": None
@@ -400,7 +439,7 @@ class Downloader:
             if true_download_directory.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
                 raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
 
-            true_download_directory.mkdir(exist_ok=True)
+            true_download_directory.mkdir()
 
             await self._download_video_only(
                 youtube_video=youtube_video,
@@ -525,6 +564,16 @@ class Downloader:
         if len(available_streams) == 0:
             raise NoStreamsFoundError(await youtube_video.title())
         
+        true_download_directory = download_directory
+        if self.configuration["quality_of_life_configuration"]["put_custom_streams_in_folder"]:
+            true_download_directory_name = safe_os_name(
+                await youtube_video.title(),
+                f"Video ({youtube_video.video_id}) Streams"
+            ) 
+
+            true_download_directory = (download_directory / true_download_directory_name)
+            true_download_directory.mkdir()
+        
         options = [ Option(f"stream {stream.itag}", stream, stream_repr(stream)) for stream in available_streams]
         stream_pick_menu = pick(options, "Pick the streams you wish to download", ">", multiselect=True, min_selection_count=1)
 
@@ -547,7 +596,7 @@ class Downloader:
                 filename_prefix=f"{filename_prefix or ""}{stream.itag}-",
                 extension_override=None if not should_convert else video_custom_file_extension
             )
-            safe_full_file_path = download_directory / safe_filename
+            safe_full_file_path = true_download_directory / safe_filename
             
             if safe_full_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
                 raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
@@ -561,7 +610,7 @@ class Downloader:
                 youtube_video.register_on_progress_callback(download_display.show_progress_callback)
 
                 download_path: Optional[str] = stream.download(
-                    output_path=str(download_directory), 
+                    output_path=str(true_download_directory), 
                     skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
                     filename=safe_filename
                 )
@@ -579,7 +628,7 @@ class Downloader:
 
                 temporary_download_path: Optional[str] = stream.download(
                     output_path=str(self.temporary_files_directory_path), 
-                    skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
+                    skip_existing=False,
                     filename=safe_full_filename(
                         full_filename=await stream_default_filename(stream),
                         fallback_filename=f"Video ({youtube_video.video_id})", 
@@ -592,7 +641,7 @@ class Downloader:
                     raise DownloadCancelled(await youtube_video.title())
                 
                 temporary_file_download_path: Path = Path(temporary_download_path)
-                converted_file_path: Path = download_directory / safe_filename
+                converted_file_path: Path = true_download_directory / safe_filename
 
                 print(converted_file_path)
                 
@@ -619,4 +668,4 @@ class Downloader:
                 conversion_display.progress_bar.close()
                 spaced_print("Conversion Successful!")
 
-        return download_directory
+        return true_download_directory
