@@ -35,6 +35,8 @@ default_configuration: Configuration = {
             "custom_download_location_override": ""
         },
         "put_playlist_videos_in_folder": True,
+        "put_channel_videos_in_folder": True,
+        "put_custom_streams_in_folder": True,
         "display_chosen_stream_on_start_of_download": True,
         "clear_temporary_files_before_exiting": False
     },
