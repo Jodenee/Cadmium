@@ -3,17 +3,19 @@ from re import compile as compile_regex
 from ..enums import MediaType
 from ..exceptions import InvalidYoutubeURLError
 
-youtube_regex = compile_regex(
-    r'^((?:https?:)?//)?((?:www|m)\.)?((?:youtube(?:-nocookie)?\.com|youtu\.be))(\/(?:[\w\-]+\?v=|embed\/|live\/|v\/)?)([\w\-]+)(\S+)?$'
-)
+youtube_video_regex = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/(?:watch\?v=|shorts\/)[\w\-]{11}(?:[&\?]\S*)?$")
+youtube_playlist_regex = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w\-]+$")
+youtube_channel_regex = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/@[\w\-\.]+$")
 
 def parse_youtube_link_type(url: str) -> MediaType:
     if (url.isspace()):
         raise InvalidYoutubeURLError(url)
-    
-    match = youtube_regex.match(url)
 
-    if (match == None):
+    if youtube_video_regex.match(url):
+        return MediaType.VIDEO
+    elif youtube_playlist_regex.match(url):
+        return MediaType.PLAYLIST
+    elif youtube_channel_regex.match(url):
+        return MediaType.CHANNEL
+    else:
         raise InvalidYoutubeURLError(url)
-    
-    return MediaType.PLAYLIST if match.group(5) == "playlist" else MediaType.VIDEO
