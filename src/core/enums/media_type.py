@@ -12,3 +12,4 @@ else:
 class MediaType(StrEnum):
     VIDEO = "video"
     PLAYLIST = "playlist"
+    CHANNEL = "channel"
