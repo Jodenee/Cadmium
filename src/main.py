@@ -35,11 +35,11 @@ from pick import Option, pick
 from pytubefix.exceptions import BotDetection
 
 from core.enums import DownloadFormat, MediaType
-from core.exceptions import InvalidSettingError, ConfigurationFileCorruptError
+from core.exceptions import InvalidSettingError
 from core.custom_types import Configuration, DownloadConfiguration
 from core.lib import ClearDirectoryDisplay
 from core.utilities.configuration import load_configuration, create_configuration_file
-from core.utilities.console import spaced_print
+from core.utilities.console import print_failed_downloads, spaced_print
 from core.utilities.download import Downloader
 from core.utilities.os import clear_directory_files, count_directory_files, try_find_ffmpeg
 from core.utilities.validation import parse_youtube_link_type
@@ -150,9 +150,8 @@ async def main() -> None:
             download_directory = Path(custom_download_directory).resolve()
 
             if (not download_directory.exists()):
-                raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "does not exist")
-            
-            if (not download_directory.is_file()):
+                raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "does not exist")      
+            elif (not download_directory.is_file()):
                 raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "is a file")
 
         urls: List[str]
@@ -168,17 +167,31 @@ async def main() -> None:
             if mediaType == MediaType.VIDEO:
                 result = await downloader.download_video(url, download_format, download_directory)
 
-                if not result["success"]:
-                    spaced_print(result["error_message"])
-                    continue
-                
-                spaced_print(f"Video ({result["youtube_video_title"]}) was downloaded successfully! ({result["download_path"]})")
+                if result["success"]:
+                    spaced_print(f"Video ({result["youtube_video_title"]}) was downloaded successfully! ({result["download_path"]})")
+                else:
+                    spaced_print(f"An error occurred while downloading Video ({result["youtube_video_title"]}) {result["error_message"]}")
             elif mediaType == MediaType.PLAYLIST:
                 result = await downloader.download_playlist(url, download_format, download_directory)
-                spaced_print(f"Playlist ({result["playlist_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
+
+                if result["success"]:
+                    spaced_print(f"Playlist ({result["playlist_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
+                else:
+                    spaced_print(f"An error occurred while downloading Playlist ({result["playlist_name"]})")
+                    spaced_print(f"Failed to download the following:")
+
+                    print_failed_downloads(result["failed_downloads"])
             else:
                 result = await downloader.download_channel(url, download_format, download_directory)
-                spaced_print(f"Channel ({result["channel_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
+
+                if result["success"]:
+                    spaced_print(f"Channel ({result["channel_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
+                else:
+                    spaced_print(f"An error occurred while downloading Channel ({result['channel_name']})")
+                    spaced_print(f"Failed to download the following:")
+
+                    print_failed_downloads(result["failed_downloads"])
+  
 
 
         run_program_again: str = pick(
@@ -200,7 +213,6 @@ async def main() -> None:
             )
 
             clear_directory_files(temporary_files_directory_path, temporary_file_extensions, clear_directory_display.on_progress)
-
             clear_directory_display.progress_bar.close()
         
         break
@@ -211,7 +223,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except BotDetection:
         spaced_print("Cadmium was detected as a bot, please refrain from downloading more videos for a while to prevent getting limited or blocked.")
-    except (InvalidSettingError, ConfigurationFileCorruptError) as exception:
+    except (InvalidSettingError) as exception:
         spaced_print(str(exception))
     except KeyboardInterrupt:
         exit(0)
