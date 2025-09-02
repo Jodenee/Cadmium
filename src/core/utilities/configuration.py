@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from json import loads as json_loads, dumps as json_dumps
 
+from core.utilities.console import spaced_print
+
 from ..custom_types import Configuration
 
 default_configuration: Configuration = {
@@ -58,8 +60,8 @@ default_configuration: Configuration = {
 }
 
 
-def create_configuration_file(path: Path, configuration: Optional[Configuration] = None) -> None:
-    file_content: str = json_dumps(configuration if configuration != None else default_configuration, indent=4)
+def create_configuration_file(path: Path, configuration: Optional[Configuration] = default_configuration) -> None:
+    file_content: str = json_dumps(configuration, indent=4)
 
     with path.open("a") as file:
         file.write(file_content)
