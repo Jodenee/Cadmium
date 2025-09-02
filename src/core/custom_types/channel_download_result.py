@@ -8,4 +8,3 @@ class ChannelDownloadResult(TypedDict):
     channel_name: str
     download_directory_path: Optional[Path]
     failed_downloads: List[FailedDownloadInformation]
-    
