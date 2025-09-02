@@ -7,6 +7,7 @@ from ffmpeg.asyncio import FFmpeg
 from pathlib import Path
 
 from core.custom_types.channel_download_result import ChannelDownloadResult
+from core.custom_types.failed_download_information import FailedDownloadInformation
 from core.utilities.pytubefix_extensions import stream_default_filename, stream_repr
 
 from ..lib import MediaDownloadDisplay, MediaConversionDisplay
@@ -80,7 +81,7 @@ class Downloader:
 
             if not true_download_directory.exists(): true_download_directory.mkdir()
 
-        failed_downloads: List[str] = []
+        failed_downloads: List[FailedDownloadInformation] = []
 
         for video_url in playlist.url_generator():
             video_download_result = await self.download_video(
@@ -90,18 +91,19 @@ class Downloader:
             )
 
             if not video_download_result["success"]:
-                spaced_print(video_download_result["error_message"])
-                failed_downloads += video_url
+                failed_downloads.append({
+                    "youtube_video_url":  video_url, 
+                    "youtube_video_title": video_download_result["youtube_video_title"], 
+                    "error_message": cast(str, video_download_result["error_message"])
+                })
                 continue
 
-            spaced_print(f"Video ({video_download_result["youtube_video_title"]}) was downloaded successfully! ({video_download_result["error_message"]})")
-
         return {
-            "success": True,
+            "success": len(failed_downloads) == 0,
             "playlist_name": str(playlist.title),
             "failed_downloads": failed_downloads,
             "download_directory_path": true_download_directory,
-            "error_message": None
+
         }
     
     async def download_channel(
@@ -130,18 +132,18 @@ class Downloader:
             )
 
             if not video_download_result["success"]:
-                spaced_print(video_download_result["error_message"])
-                failed_downloads += video.watch_url
+                failed_downloads.append({
+                    "youtube_video_url": video.title, 
+                    "youtube_video_title": video_download_result["youtube_video_title"], 
+                    "error_message": cast(str, video_download_result["error_message"])
+                })
                 continue
 
-            spaced_print(f"Video ({video_download_result["youtube_video_title"]}) was downloaded successfully! ({video_download_result["error_message"]})")
-
         return {
-            "success": True,
+            "success": len(failed_downloads) == 0,
             "channel_name": channel.channel_url,
             "failed_downloads": failed_downloads,
             "download_directory_path": true_download_directory,
-            "error_message": None
         }
 
 
@@ -169,7 +171,7 @@ class Downloader:
         video_full_file_path = download_directory / safe_filename
 
         if video_full_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-            raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+            raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
             spaced_print(f"Chosen stream info: {stream_repr(stream)}")
@@ -206,7 +208,7 @@ class Downloader:
             download_display.progress_bar.close()
 
             if temp_file_download_path == None:
-                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+                raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
                 
             download_file_path = Path(temp_file_download_path)
             converted_file_path: Path = download_directory / safe_filename
@@ -261,7 +263,7 @@ class Downloader:
         safe_full_video_file_path = download_directory / safe_filename
         
         if safe_full_video_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-            raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+            raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
             spaced_print(f"Chosen stream info: {stream_repr(stream)}")
@@ -282,7 +284,7 @@ class Downloader:
             download_display.progress_bar.close()
 
             if (download_file_path == None):
-                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+                raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
             return Path(download_file_path)
         else:
@@ -301,7 +303,7 @@ class Downloader:
             download_display.progress_bar.close()
 
             if temp_file_download_path == None:
-                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+                raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
                 
             download_file_path = Path(temp_file_download_path)
             converted_file_path: Path = download_directory / safe_filename
@@ -356,7 +358,7 @@ class Downloader:
         safe_full_audio_file_path = download_directory / safe_filename
         
         if safe_full_audio_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-            raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+            raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
             spaced_print(f"Chosen stream info: {stream_repr(stream)}")
@@ -377,7 +379,7 @@ class Downloader:
             download_display.progress_bar.close()
 
             if download_file_location == None:
-                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+                raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
             return Path(download_file_location)
         else:
@@ -437,7 +439,7 @@ class Downloader:
             true_download_directory: Path = download_directory / safe_folder_name
 
             if true_download_directory.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+                raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
             true_download_directory.mkdir()
 
@@ -481,7 +483,7 @@ class Downloader:
             merged_file_path = download_directory / merged_filename
 
             if merged_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+                raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
             if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
                 spaced_print(f"Chosen video stream info: {stream_repr(video_stream)}")
@@ -524,7 +526,7 @@ class Downloader:
             audio_download_display.progress_bar.close()
 
             if (video_only_file_path == None or audio_only_file_path == None):
-                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+                raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
             if merged_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
                 if not self.configuration["warning_configuration"]["silence_already_exists_warning"]:
@@ -599,7 +601,7 @@ class Downloader:
             safe_full_file_path = true_download_directory / safe_filename
             
             if safe_full_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-                raise VideoDownloadSkipped(await youtube_video.title(), download_directory)
+                raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
             if not should_convert:
                 download_display = MediaDownloadDisplay(
