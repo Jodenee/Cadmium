@@ -151,7 +151,7 @@ async def main() -> None:
 
             if (not download_directory.exists()):
                 raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "does not exist")      
-            elif (not download_directory.is_file()):
+            elif (download_directory.is_file()):
                 raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "is a file")
 
         urls: List[str]
@@ -235,5 +235,5 @@ if __name__ == "__main__":
         )
     else:
         exit(0)
-        
-    input("Press enter to close the program... ")
+    
+    input("\nPress enter to close the program... ")
