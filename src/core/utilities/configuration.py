@@ -2,8 +2,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from json import loads as json_loads, dumps as json_dumps
 
-from core.utilities.console import spaced_print
-
 from ..custom_types import Configuration
 
 default_configuration: Configuration = {
