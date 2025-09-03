@@ -158,8 +158,7 @@ class Downloader:
 
         if should_convert and not self.ffmpeg_executable_path:
             raise InvalidSettingError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
-
-        if video_custom_file_extension == None or len(video_custom_file_extension.strip()) == 0 and should_convert:
+        elif video_custom_file_extension == None or len(video_custom_file_extension.strip()) == 0 and should_convert:
             raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
 
         safe_filename = safe_full_filename(
@@ -559,13 +558,14 @@ class Downloader:
             spaced_print("Merge Successful!")
 
             return merged_file_path
-        
+
+
     async def _download_custom(self, youtube_video: AsyncYouTube, download_directory: Path, filename_prefix: Optional[str] = None) -> Path:
         available_streams = await youtube_video.streams()
 
         if len(available_streams) == 0:
             raise NoStreamsFoundError(await youtube_video.title())
-        
+
         true_download_directory = download_directory
         if self.configuration["quality_of_life_configuration"]["put_custom_streams_in_folder"]:
             true_download_directory_name = safe_os_name(
@@ -575,7 +575,7 @@ class Downloader:
 
             true_download_directory = (download_directory / true_download_directory_name)
             true_download_directory.mkdir()
-        
+
         options = [ Option(f"stream {stream.itag}", stream, stream_repr(stream)) for stream in available_streams]
         stream_pick_menu = pick(options, "Pick the streams you wish to download", ">", multiselect=True, min_selection_count=1)
 
@@ -605,7 +605,7 @@ class Downloader:
 
             if not should_convert:
                 download_display = MediaDownloadDisplay(
-                    f"Downloading ({option.label})", 
+                    f"Downloading Stream {stream.itag} ({await youtube_video.title()})", 
                     stream.filesize, 
                     self.configuration
                 )
@@ -622,7 +622,7 @@ class Downloader:
                     raise DownloadCancelled(await youtube_video.title())
             else:        
                 download_display = MediaDownloadDisplay(
-                    f"Downloading ({option.label})", 
+                    f"Downloading Stream {stream.itag} ({await youtube_video.title()})", 
                     stream.filesize, 
                     self.configuration
                 )
