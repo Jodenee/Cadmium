@@ -10,6 +10,6 @@ else:
         exit(1)
 
 class MediaType(StrEnum):
-    VIDEO = "video"
+    VIDEO    = "video"
     PLAYLIST = "playlist"
-    CHANNEL = "channel"
+    CHANNEL  = "channel"
