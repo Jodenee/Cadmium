@@ -168,16 +168,16 @@ async def main() -> None:
                 result = await downloader.download_video(url, download_format, download_directory)
 
                 if result["success"]:
-                    spaced_print(f"Video ({result["youtube_video_title"]}) was downloaded successfully! ({result["download_path"]})")
+                    spaced_print(f"Video ({result['youtube_video_title']}) was downloaded successfully! ({result['download_path']})")
                 else:
-                    spaced_print(f"An error occurred while downloading Video ({result["youtube_video_title"]}) {result["error_message"]}")
+                    spaced_print(f"An error occurred while downloading Video ({result['youtube_video_title']}) {result['error_message']}")
             elif mediaType == MediaType.PLAYLIST:
                 result = await downloader.download_playlist(url, download_format, download_directory)
 
                 if result["success"]:
-                    spaced_print(f"Playlist ({result["playlist_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
+                    spaced_print(f"Playlist ({result['playlist_name']}) was downloaded successfully! ({result['download_directory_path']})")
                 else:
-                    spaced_print(f"An error occurred while downloading Playlist ({result["playlist_name"]})")
+                    spaced_print(f"An error occurred while downloading Playlist ({result['playlist_name']})")
                     spaced_print(f"Failed to download the following:")
 
                     print_failed_downloads(result["failed_downloads"])
@@ -185,14 +185,13 @@ async def main() -> None:
                 result = await downloader.download_channel(url, download_format, download_directory)
 
                 if result["success"]:
-                    spaced_print(f"Channel ({result["channel_name"]}) was downloaded successfully! ({result["download_directory_path"]})")
+                    spaced_print(f"Channel ({result['channel_name']}) was downloaded successfully! ({result['download_directory_path']})")
                 else:
                     spaced_print(f"An error occurred while downloading Channel ({result['channel_name']})")
                     spaced_print(f"Failed to download the following:")
 
                     print_failed_downloads(result["failed_downloads"])
   
-
 
         run_program_again: str = pick(
             ("Yes", "No"), 
@@ -216,7 +215,7 @@ async def main() -> None:
             clear_directory_display.progress_bar.close()
         
         break
-                    
+
 
 if __name__ == "__main__":
     try:
