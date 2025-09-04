@@ -595,7 +595,7 @@ class Downloader:
             safe_filename = safe_full_filename(
                 full_filename=await stream_default_filename(stream), 
                 fallback_filename=f"Video ({youtube_video.video_id})", 
-                filename_prefix=f"{filename_prefix or ""}{stream.itag}-",
+                filename_prefix=f"{filename_prefix or ''}{stream.itag}-",
                 extension_override=None if not should_convert else video_custom_file_extension
             )
             safe_full_file_path = true_download_directory / safe_filename
