@@ -1,26 +1,46 @@
 from os import environ
-
-import os
 from pathlib import Path
-from typing import Callable, Dict, List, Literal, Optional, Tuple
-
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar
 from platform import system
 from re import sub as re_sub
 
 from core.custom_types.configuration import Configuration
+from core.enums.os import OperatingSystem
 from core.exceptions.invalid_setting_error import InvalidSettingError
-from core.utilities.console import spaced_print
+
+# Generics
+
+T = TypeVar('T')
+
+# functions
+
+def get_os() -> OperatingSystem:  
+    try:
+        return OperatingSystem[system().upper()]
+    except KeyError:
+        return OperatingSystem.UNKNOWN
+    
+
+def os_choose(map: Dict[OperatingSystem, T], default: T) -> T:
+    try:
+        return map[get_os()]
+    except KeyError:
+        return default
 
 
 def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
-    replace_regex: Dict[str, str] = {
-        "Windows": r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$",
-        "Linux": r"[(\\0)\/.\-*?|&;<>#!]|^\.+|\.+$",
-        "Java": r"",
-        "": r""
+    replace_regex: Dict[OperatingSystem, str] = {
+        OperatingSystem.WINDOWS: r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$",
+        OperatingSystem.LINUX: r"[(\\0)\/.\-*?|&;<>#!]|^\.+|\.+$",
+        OperatingSystem.DARWIN: r"[\/:*?\"<>|]",
+        OperatingSystem.UNIX: r"",
+        OperatingSystem.JAVA: r"",
+        OperatingSystem.IOS: r"",
+        OperatingSystem.ANDROID: r"",
+        OperatingSystem.UNKNOWN: r""
     }
-    reserved_filenames: Dict[str, Tuple[str, ...]] = {
-        "Windows": (
+    reserved_filenames: Dict[OperatingSystem, Tuple[str, ...]] = {
+        OperatingSystem.WINDOWS: (
             "CON", 
             "PRN", 
             "AUX", 
@@ -44,15 +64,28 @@ def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
             "LPT8", 
             "LPT9"
         ),
-        "Linux": (),
-        "Java": (),
-        "": () # When the operating system cannot be determined assume no reserved file names exist
+        OperatingSystem.LINUX: (),
+        OperatingSystem.DARWIN: (
+            ".DS_Store",
+            ".Trashes",
+            ".VolumeIcon",
+            ".Spotlight",
+            ".fseventsd",
+            ".TemporaryItems",
+            ".DocumentRevisions",
+            ".AppleDouble"
+        ),
+        OperatingSystem.UNIX: (),
+        OperatingSystem.JAVA: (),
+        OperatingSystem.IOS: (),
+        OperatingSystem.ANDROID: (),
+        OperatingSystem.UNKNOWN: ()
     }
-    os_name: Literal["Windows", "Linux", "Java", ""] = system() # type: ignore # Function only returns "Windows", "Linux", "Java" and "" only.
-    safe_name: str = re_sub(replace_regex[os_name], "", name).strip()
+    os: OperatingSystem = get_os()
+    safe_name: str = re_sub(replace_regex[os], "", name).strip()
     upper_case_safe_name: str = safe_name.upper()
 
-    for reserved_file_name in reserved_filenames[os_name]:
+    for reserved_file_name in reserved_filenames[os]:
         if reserved_file_name == upper_case_safe_name: 
             safe_name = fallback_name
 
@@ -81,13 +114,15 @@ def safe_full_filename(full_filename: str, fallback_filename: str, filename_pref
 
 def count_directory_files(path: Path, with_extensions: List[str]) -> int:
     return len([
-        file for file in path.iterdir() if file.is_file() and file.suffix in with_extensions
+        file for file in path.iterdir() 
+        if file.is_file() and file.suffix in with_extensions
     ])
 
 
 def clear_directory_files(path: Path, with_extensions: List[str], on_progress: Optional[Callable[[int], None]]):
     files_to_remove = [
-        file for file in path.iterdir() if file.is_file() and file.suffix in with_extensions
+        file for file in path.iterdir() 
+        if file.is_file() and file.suffix in with_extensions
     ]
 
     for file_number, file in enumerate(files_to_remove, 1):
@@ -96,12 +131,19 @@ def clear_directory_files(path: Path, with_extensions: List[str], on_progress: O
         if on_progress:
             on_progress(file_number)
 
+
 def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
-    system_path_variables = os.environ.get("PATH", "").split(";")
+    path_variable_separator = os_choose({
+        OperatingSystem.LINUX: ":"
+    }, ";")
+    ffmpeg_filename = os_choose({
+        OperatingSystem.LINUX: "ffmpeg"
+    }, "ffmpeg.exe")
+    system_path_variables = environ.get("PATH", "").split(path_variable_separator)
 
     if configuration["external_dependency_configuration"]["FFmpeg"]["try_find_ffmpeg_path_automatically"] and not configuration["external_dependency_configuration"]["FFmpeg"]["ffmpeg_executable_path"]:
         for path in system_path_variables:
-            ffmpeg_path = Path(path) / "ffmpeg.exe"
+            ffmpeg_path = Path(path) / ffmpeg_filename
 
             if ffmpeg_path.exists():
                 return ffmpeg_path
