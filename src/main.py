@@ -25,14 +25,14 @@ SOFTWARE.
 __version__ = "0.0.0"
 
 import asyncio
+import sys
 
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from traceback import format_exc as get_traceback
-
 from pick import Option, pick
-
 from pytubefix.exceptions import BotDetection
+from sys import exit
 
 from core.enums import DownloadFormat, MediaType
 from core.exceptions import InvalidSettingError
@@ -46,7 +46,10 @@ from core.utilities.validation import parse_youtube_link_type
 
 # Required + default files/directories
 
-project_root_directory: Path = Path(__file__).parent.resolve()
+if getattr(sys, "frozen", False):
+    project_root_directory: Path = Path(sys.executable).parent.resolve() # If run as an exe
+else:
+    project_root_directory: Path = Path(__file__).parent.resolve() # if run with python interpreter
 
 to_download_file: Path = project_root_directory.joinpath("to_download.txt")
 configuration_file_path: Path = project_root_directory.joinpath("configuration.json")
@@ -63,7 +66,7 @@ default_custom_download_directory_path: Path = downloads_directory_path.joinpath
 
 configuration: Configuration = load_configuration(configuration_file_path)
 
-temporary_file_extensions = [ ".webp", ".m4a", ".mp4", ".mp3" ]
+temporary_file_extensions = [ ".webm", ".m4a", ".mp4", ".mp3" ]
 
 select_menu_indicator = ">"
 
@@ -87,8 +90,8 @@ download_format_to_custom_download_configurations: Dict[DownloadFormat, Download
         "default_download_location": default_video_only_download_directory_path
     },
     DownloadFormat.AUDIO_ONLY: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_audio_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["audio_download_location_override"],
+        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_audio_only_download_location_override"],
+        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["audio_only_download_location_override"],
         "default_download_location": default_audio_download_directory_path
     },
     DownloadFormat.BEST_OF_BOTH: {
@@ -129,7 +132,7 @@ async def main() -> None:
     while True:
         download_format: DownloadFormat = pick(
             download_format_options, 
-            "Pick which format should the media be downloaded as", 
+            "Which format should the videos be downloaded as", 
             indicator=select_menu_indicator
         )[0].value # type: ignore
 
@@ -145,19 +148,27 @@ async def main() -> None:
             custom_download_directory = download_configuration["download_location_override"]
 
             if (custom_download_directory == None):
-                raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "is empty")
+                raise InvalidSettingError(f"{str(download_format)}_download_location_override", "is empty")
 
             download_directory = Path(custom_download_directory).resolve()
 
             if (not download_directory.exists()):
-                raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "does not exist")      
+                raise InvalidSettingError(f"{str(download_format)}_download_location_override", "does not exist")      
             elif (download_directory.is_file()):
-                raise InvalidSettingError(f"custom_{str(download_format)}_download_location", "is a file")
+                raise InvalidSettingError(f"{str(download_format)}_download_location_override", "is a file")
 
         urls: List[str]
 
         with to_download_file.open("r") as file:
             urls = [ line.removesuffix("\n") for line in file.readlines() if not line.isspace() ]
+
+        if len(urls) <= 0:
+            pick(
+                [ "go back" ], 
+                f"No YouTube urls found in ({str(to_download_file)}).",
+                select_menu_indicator
+            )
+            continue
 
         for url in urls:
             mediaType = parse_youtube_link_type(url)
@@ -191,7 +202,8 @@ async def main() -> None:
                     spaced_print(f"Failed to download the following:")
 
                     print_failed_downloads(result["failed_downloads"])
-  
+
+        input("Downloading complete! (Press enter to continue) ")    
 
         run_program_again: str = pick(
             ("Yes", "No"), 
@@ -205,14 +217,16 @@ async def main() -> None:
         # remove temporary files if enabled before exiting
         if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
             total_files_to_remove = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
-            clear_directory_display = ClearDirectoryDisplay(
-                f"Clearing ({temporary_files_directory_path})", 
-                total_files_to_remove, 
-                configuration
-            )
 
-            clear_directory_files(temporary_files_directory_path, temporary_file_extensions, clear_directory_display.on_progress)
-            clear_directory_display.progress_bar.close()
+            if total_files_to_remove > 0:
+                clear_directory_display = ClearDirectoryDisplay(
+                    f"Clearing ({temporary_files_directory_path})", 
+                    total_files_to_remove, 
+                    configuration
+                )
+
+                clear_directory_files(temporary_files_directory_path, temporary_file_extensions, clear_directory_display.on_progress)
+                clear_directory_display.progress_bar.close()
         
         break
 
@@ -232,7 +246,5 @@ if __name__ == "__main__":
             f"{exception.__class__.__name__}: {exception}\n\n"
             f"Full Traceback:\n{get_traceback()}"
         )
-    else:
-        exit(0)
     
     input("\nPress enter to close the program... ")
