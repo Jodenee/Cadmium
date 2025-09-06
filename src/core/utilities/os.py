@@ -1,4 +1,4 @@
-from os import environ
+from os import environ, system as run_command
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, TypeVar
 from platform import system
@@ -157,3 +157,9 @@ def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
                 raise InvalidSettingError("ffmpeg_path", f"{raw_ffmpeg_path} does not exist")
             
             return ffmpeg_path
+
+
+def clear_console() -> None:
+    run_command(os_choose({
+        OperatingSystem.WINDOWS: "cls"
+    }, "clear"))
