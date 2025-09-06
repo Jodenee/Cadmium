@@ -14,3 +14,8 @@ to_download.txt
 
 # Ignore configuration file
 Configuration.json
+
+# Build artifacts
+build
+dist
+main.spec
