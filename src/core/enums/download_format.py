@@ -11,7 +11,7 @@ else:
 
 class DownloadFormat(StrEnum):
     VIDEO        = "video"
-    VIDEO_ONLY   = "video_only"
-    AUDIO_ONLY   = "audio_only"
-    BEST_OF_BOTH = "best_of_both"
+    VIDEO_ONLY   = "video only"
+    AUDIO_ONLY   = "audio only"
+    BEST_OF_BOTH = "best of both"
     CUSTOM       = "custom"
