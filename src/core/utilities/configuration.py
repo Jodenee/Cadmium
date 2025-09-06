@@ -24,13 +24,13 @@ default_configuration: Configuration = {
         "download_location_overrides": {
             "use_video_download_location_override": False,
             "use_video_only_download_location_override": False,
-            "use_audio_download_location_override": False,
+            "use_audio_only_download_location_override": False,
             "use_best_of_both_download_location_override": False,
             "use_custom_download_location_override": False,
             
             "video_download_location_override": "",
             "video_only_download_location_override": "",
-            "audio_download_location_override": "",
+            "audio_only_download_location_override": "",
             "best_of_both_download_location_override": "",
             "custom_download_location_override": ""
         },
