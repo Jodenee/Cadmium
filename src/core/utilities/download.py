@@ -18,8 +18,9 @@ from .console import spaced_print
 from .os import safe_full_filename, safe_os_name
 
 class Downloader:
-    def __init__(self, configuration: Configuration, temporary_files_directory_path: Path, ffmpeg_executable_path: Optional[Path]):
+    def __init__(self, configuration: Configuration, select_menu_indicator: str, temporary_files_directory_path: Path, ffmpeg_executable_path: Optional[Path] = None):
         self.configuration = configuration
+        self.select_menu_indicator = select_menu_indicator
         self.temporary_files_directory_path = temporary_files_directory_path
         self.ffmpeg_executable_path = ffmpeg_executable_path
 
@@ -575,7 +576,13 @@ class Downloader:
             true_download_directory.mkdir(exist_ok=True)
 
         options = [ Option(f"stream {stream.itag}", stream, stream_repr(stream)) for stream in available_streams]
-        stream_pick_menu = pick(options, "Pick the streams you wish to download. [Spacebar] to select/deselect and [Enter] to download.", ">", multiselect=True, min_selection_count=1)
+        stream_pick_menu = pick(
+            options, 
+            "Pick the streams you wish to download. [Spacebar] to select/deselect and [Enter] to download.", 
+            indicator=self.select_menu_indicator, 
+            multiselect=True, 
+            min_selection_count=1
+        )
 
         should_convert = self.configuration["download_behavior_configuration"]["convert_custom_downloads"] 
         video_custom_file_extension = self.configuration["download_behavior_configuration"]["convert_custom_downloads_to"]
@@ -642,8 +649,6 @@ class Downloader:
                 
                 temporary_file_download_path: Path = Path(temporary_download_path)
                 converted_file_path: Path = true_download_directory / safe_filename
-
-                print(converted_file_path)
                 
                 ffmpeg = (
                     FFmpeg(str(self.ffmpeg_executable_path))
