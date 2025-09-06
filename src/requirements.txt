@@ -3,3 +3,4 @@ python-ffmpeg >= 2.0.12, < 3.0.0
 StrEnum >= 0.4.15, < 1.0.0; python_version < "3.11"
 tqdm >= 4.67.1, < 5.0.0
 pick >= 2.4.0, < 3.0.0
+pyinstaller >= 6.15.0, < 7.0.0
