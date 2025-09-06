@@ -38,3 +38,4 @@ Occasionally, YouTube may identify Cadmium as a bot. To reduce the likelihood of
 * The maintainers of the [**python-ffmpeg**](https://github.com/jonghwanhyeon/python-ffmpeg) python package. [❤️ (Support the project here)](https://github.com/jonghwanhyeon/python-ffmpeg)
 * The maintainers of the [**tqdm**](https://github.com/tqdm/tqdm) python package. [❤️ (Support the project here)](https://github.com/sponsors/tqdm)
 * The maintainers of the [**pick**](https://github.com/aisk/pick) python package. [❤️ (Support the project here)](https://github.com/aisk/pick)
+* The maintainers of the [**pyinstaller**](https://github.com/pyinstaller/pyinstaller) python package [❤️ (Support the project here)](https://github.com/sponsors/Legorooj)
