@@ -117,9 +117,7 @@ class Downloader:
 
         if self.configuration["quality_of_life_configuration"]["put_channel_videos_in_folder"]:
             true_download_directory = download_directory.joinpath(safe_os_name(channel.channel_name, f"Channel ({channel.channel_id})"))
-
-            if not true_download_directory.exists(): 
-                true_download_directory.mkdir()
+            true_download_directory.mkdir(exist_ok=True)
 
         failed_downloads = []
 
@@ -387,7 +385,7 @@ class Downloader:
 
             download_file_location: Optional[str] = stream.download(
                 output_path=str(self.temporary_files_directory_path),
-                skip_existing=True,
+                skip_existing=False,
                 filename=safe_full_filename(
                     full_filename=await stream_default_filename(stream), 
                     fallback_filename=f"Video ({youtube_video.video_id})", 
@@ -440,7 +438,7 @@ class Downloader:
             if true_download_directory.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
                 raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
-            true_download_directory.mkdir()
+            true_download_directory.mkdir(exist_ok=True)
 
             await self._download_video_only(
                 youtube_video=youtube_video,
@@ -574,10 +572,10 @@ class Downloader:
             ) 
 
             true_download_directory = (download_directory / true_download_directory_name)
-            true_download_directory.mkdir()
+            true_download_directory.mkdir(exist_ok=True)
 
         options = [ Option(f"stream {stream.itag}", stream, stream_repr(stream)) for stream in available_streams]
-        stream_pick_menu = pick(options, "Pick the streams you wish to download", ">", multiselect=True, min_selection_count=1)
+        stream_pick_menu = pick(options, "Pick the streams you wish to download. [Spacebar] to select/deselect and [Enter] to download.", ">", multiselect=True, min_selection_count=1)
 
         should_convert = self.configuration["download_behavior_configuration"]["convert_custom_downloads"] 
         video_custom_file_extension = self.configuration["download_behavior_configuration"]["convert_custom_downloads_to"]
