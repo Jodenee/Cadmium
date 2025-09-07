@@ -35,14 +35,15 @@ from pytubefix.exceptions import BotDetection
 from sys import exit
 
 from core.enums import DownloadFormat, MediaType
+from core.enums.main_menu_option import MainMenuOption
 from core.exceptions import InvalidSettingError
 from core.custom_types import Configuration, DownloadConfiguration
 from core.lib import ClearDirectoryDisplay
 from core.utilities.configuration import load_configuration, create_configuration_file
 from core.utilities.console import print_failed_downloads, spaced_print
 from core.utilities.download import Downloader
-from core.utilities.os import clear_directory_files, count_directory_files, try_find_ffmpeg
-from core.utilities.validation import parse_youtube_link_type
+from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg
+from core.utilities.parse import parse_youtube_link_type
 
 # Required + default files/directories
 
@@ -70,12 +71,19 @@ temporary_file_extensions = [ ".webm", ".m4a", ".mp4", ".mp3" ]
 
 select_menu_indicator = ">"
 
-download_format_options: Tuple[Option, ...] = (
+main_menu_options: Tuple[Option, ...] = (
+    Option(MainMenuOption.DOWNLOAD_VIDEOS.value, MainMenuOption.DOWNLOAD_VIDEOS, "Download videos."),
+    Option(f"{MainMenuOption.EDIT_CONFIGURATION.value} (Coming soon)", MainMenuOption.EDIT_CONFIGURATION, "Edit Cadmium's configuration.", enabled=False),
+    Option(MainMenuOption.EXIT_PROGRAM.value, MainMenuOption.EXIT_PROGRAM, "Exit the program.")
+)
+
+download_format_menu_options: Tuple[Option, ...] = (
     Option(DownloadFormat.VIDEO.value, DownloadFormat.VIDEO, "Downloads both video and audio tracks but at low quality."), 
     Option(DownloadFormat.VIDEO_ONLY.value, DownloadFormat.VIDEO_ONLY, "Downloads only the video track but at high quality."), 
     Option(DownloadFormat.AUDIO_ONLY.value, DownloadFormat.AUDIO_ONLY, "Downloads only the audio track but at high quality."), 
     Option(DownloadFormat.BEST_OF_BOTH.value, DownloadFormat.BEST_OF_BOTH, "Downloads both the video and audio tracks but at high quality."),
-    Option(DownloadFormat.CUSTOM.value, DownloadFormat.CUSTOM, "Downloads any streams of your choosing.")
+    Option(DownloadFormat.CUSTOM.value, DownloadFormat.CUSTOM, "Downloads any streams of your choosing."),
+    Option("return to main menu", "return to main menu", "Go back to the main menu without downloading anything.")
 )
 
 download_format_to_custom_download_configurations: Dict[DownloadFormat, DownloadConfiguration] = {
@@ -119,9 +127,7 @@ async def main() -> None:
     temporary_files_directory_path.mkdir(exist_ok=True)
     to_download_file.touch()
 
-    downloader: Downloader = Downloader(configuration, temporary_files_directory_path, ffmpeg_executable_path)
-
-    print(f"Cadmium - v{__version__}")
+    downloader: Downloader = Downloader(configuration, select_menu_indicator, temporary_files_directory_path, ffmpeg_executable_path)
 
     if not configuration["warning_configuration"]["silence_undeleted_temp_file_warning"]:
         number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
@@ -130,105 +136,106 @@ async def main() -> None:
             spaced_print(f"WARNING: You have {number_of_existing_temp_files} temporary file(s)!")
 
     while True:
-        download_format: DownloadFormat = pick(
-            download_format_options, 
-            "Which format should the videos be downloaded as", 
+        main_menu_option: MainMenuOption = pick(
+            main_menu_options, 
+            f"Cadmium - v{__version__} (https://github.com/Jodenee/Cadmium)", 
             indicator=select_menu_indicator
         )[0].value # type: ignore
 
-        download_configuration = download_format_to_custom_download_configurations[download_format]
-        download_directory: Path
+        if main_menu_option == MainMenuOption.DOWNLOAD_VIDEOS:
+            download_format: DownloadFormat = pick(
+                download_format_menu_options, 
+                "Which format should the videos be downloaded as", 
+                indicator=select_menu_indicator
+            )[0].value # type: ignore
 
-        if not download_configuration["use_download_location_override"]:
-            downloads_directory_path.mkdir(exist_ok=True)
-            download_configuration["default_download_location"].mkdir(exist_ok=True)
+            if download_format == "return to main menu":
+                continue
 
-            download_directory = download_configuration["default_download_location"]
-        else:
-            custom_download_directory = download_configuration["download_location_override"]
+            download_configuration = download_format_to_custom_download_configurations[download_format]
+            download_directory: Path
 
-            if (custom_download_directory == None):
-                raise InvalidSettingError(f"{str(download_format)}_download_location_override", "is empty")
+            if not download_configuration["use_download_location_override"]:
+                downloads_directory_path.mkdir(exist_ok=True)
+                download_configuration["default_download_location"].mkdir(exist_ok=True)
 
-            download_directory = Path(custom_download_directory).resolve()
-
-            if (not download_directory.exists()):
-                raise InvalidSettingError(f"{str(download_format)}_download_location_override", "does not exist")      
-            elif (download_directory.is_file()):
-                raise InvalidSettingError(f"{str(download_format)}_download_location_override", "is a file")
-
-        urls: List[str]
-
-        with to_download_file.open("r") as file:
-            urls = [ line.removesuffix("\n") for line in file.readlines() if not line.isspace() ]
-
-        if len(urls) <= 0:
-            pick(
-                [ "go back" ], 
-                f"No YouTube urls found in ({str(to_download_file)}).",
-                select_menu_indicator
-            )
-            continue
-
-        for url in urls:
-            mediaType = parse_youtube_link_type(url)
-
-            spaced_print(f"Now downloading {mediaType.value} ({url})")
-
-            if mediaType == MediaType.VIDEO:
-                result = await downloader.download_video(url, download_format, download_directory)
-
-                if result["success"]:
-                    spaced_print(f"Video ({result['youtube_video_title']}) was downloaded successfully! ({result['download_path']})")
-                else:
-                    spaced_print(f"An error occurred while downloading Video ({result['youtube_video_title']}) {result['error_message']}")
-            elif mediaType == MediaType.PLAYLIST:
-                result = await downloader.download_playlist(url, download_format, download_directory)
-
-                if result["success"]:
-                    spaced_print(f"Playlist ({result['playlist_name']}) was downloaded successfully! ({result['download_directory_path']})")
-                else:
-                    spaced_print(f"An error occurred while downloading Playlist ({result['playlist_name']})")
-                    spaced_print(f"Failed to download the following:")
-
-                    print_failed_downloads(result["failed_downloads"])
+                download_directory = download_configuration["default_download_location"]
             else:
-                result = await downloader.download_channel(url, download_format, download_directory)
+                custom_download_directory = download_configuration["download_location_override"]
 
-                if result["success"]:
-                    spaced_print(f"Channel ({result['channel_name']}) was downloaded successfully! ({result['download_directory_path']})")
-                else:
-                    spaced_print(f"An error occurred while downloading Channel ({result['channel_name']})")
-                    spaced_print(f"Failed to download the following:")
+                if (custom_download_directory == None):
+                    raise InvalidSettingError(f"{str(download_format)}_download_location_override", "is empty")
 
-                    print_failed_downloads(result["failed_downloads"])
+                download_directory = Path(custom_download_directory).resolve()
 
-        input("Downloading complete! (Press enter to continue) ")    
+                if (not download_directory.exists()):
+                    raise InvalidSettingError(f"{str(download_format)}_download_location_override", "does not exist")      
+                elif (download_directory.is_file()):
+                    raise InvalidSettingError(f"{str(download_format)}_download_location_override", "is a file")
 
-        run_program_again: str = pick(
-            ("Yes", "No"), 
-            "Would you like to run the program again?", 
-            indicator=select_menu_indicator
-        )[0] # type: ignore
+            urls: List[str]
 
-        if run_program_again == "Yes":
-            continue
+            with to_download_file.open("r") as file:
+                urls = [ line.removesuffix("\n") for line in file.readlines() if not line.isspace() ]
 
-        # remove temporary files if enabled before exiting
-        if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
-            total_files_to_remove = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
-
-            if total_files_to_remove > 0:
-                clear_directory_display = ClearDirectoryDisplay(
-                    f"Clearing ({temporary_files_directory_path})", 
-                    total_files_to_remove, 
-                    configuration
+            if len(urls) <= 0:
+                pick(
+                    [ "return to main menu" ], 
+                    f"No YouTube urls found in ({str(to_download_file)}).",
+                    select_menu_indicator
                 )
+                continue
 
-                clear_directory_files(temporary_files_directory_path, temporary_file_extensions, clear_directory_display.on_progress)
-                clear_directory_display.progress_bar.close()
-        
-        break
+            for index, url in enumerate(urls):
+                mediaType = parse_youtube_link_type(url)
+
+                spaced_print(f"Now downloading {mediaType.value} ({url})") if index > 0 else print(f"Now downloading {mediaType.value} ({url})")
+
+                if mediaType == MediaType.VIDEO:
+                    result = await downloader.download_video(url, download_format, download_directory)
+
+                    if result["success"]:
+                        spaced_print(f"Video ({result['youtube_video_title']}) was downloaded successfully! ({result['download_path']})")
+                    else:
+                        spaced_print(f"An error occurred while downloading Video ({result['youtube_video_title']}) {result['error_message']}")
+                elif mediaType == MediaType.PLAYLIST:
+                    result = await downloader.download_playlist(url, download_format, download_directory)
+
+                    if result["success"]:
+                        spaced_print(f"Playlist ({result['playlist_name']}) was downloaded successfully! ({result['download_directory_path']})")
+                    else:
+                        spaced_print(f"An error occurred while downloading Playlist ({result['playlist_name']})")
+                        spaced_print(f"Failed to download the following:")
+
+                        print_failed_downloads(result["failed_downloads"])
+                else:
+                    result = await downloader.download_channel(url, download_format, download_directory)
+
+                    if result["success"]:
+                        spaced_print(f"Channel ({result['channel_name']}) was downloaded successfully! ({result['download_directory_path']})")
+                    else:
+                        spaced_print(f"An error occurred while downloading Channel ({result['channel_name']})")
+                        spaced_print(f"Failed to download the following:")
+
+                        print_failed_downloads(result["failed_downloads"])
+
+            input("\nDownloading complete! (Press enter to continue) ")
+            clear_console()
+        elif main_menu_option == MainMenuOption.EXIT_PROGRAM:
+            if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
+                total_files_to_remove = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
+
+                if total_files_to_remove > 0:
+                    clear_directory_display = ClearDirectoryDisplay(
+                        f"Clearing ({temporary_files_directory_path})", 
+                        total_files_to_remove, 
+                        configuration
+                    )
+
+                    clear_directory_files(temporary_files_directory_path, temporary_file_extensions, clear_directory_display.on_progress)
+                    clear_directory_display.progress_bar.close()
+            
+            break
 
 
 if __name__ == "__main__":
@@ -246,5 +253,7 @@ if __name__ == "__main__":
             f"{exception.__class__.__name__}: {exception}\n\n"
             f"Full Traceback:\n{get_traceback()}"
         )
+    else:
+        exit(0)
     
     input("\nPress enter to close the program... ")
