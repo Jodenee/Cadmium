@@ -18,4 +18,4 @@ Configuration.json
 # Build artifacts
 build
 dist
-main.spec
+*.spec
