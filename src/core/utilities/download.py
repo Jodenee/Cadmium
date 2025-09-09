@@ -526,12 +526,6 @@ class Downloader:
             if (video_only_file_path == None or audio_only_file_path == None):
                 raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
-            if merged_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-                if not self.configuration["warning_configuration"]["silence_already_exists_warning"]:
-                    spaced_print(f"WARNING: ({youtube_video.title}) already exists!")
-
-                return merged_file_path
-
             ffmpeg = (
                 FFmpeg(str(self.ffmpeg_executable_path))
                 .option("y")
