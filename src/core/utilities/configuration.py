@@ -41,13 +41,12 @@ default_configuration: Configuration = {
         "clear_temporary_files_before_exiting": False
     },
     "warning_configuration": {
-        "silence_undeleted_temp_file_warning": False,
-        "silence_already_exists_warning": False
+        "silence_existing_temporary_files_warning": False,
     },
     "ui_configuration": {
-        "custom_download_bar_colour": None,
-        "custom_convert_bar_colour": None,
-        "custom_clear_directory_bar_colour": None
+        "custom_download_bar_colour": "",
+        "custom_convert_bar_colour": "",
+        "custom_clear_directory_bar_colour": ""
     },
     "external_dependency_configuration": {
         "FFmpeg": {
