@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = "0.0.0"
+__version__ = "1.0.0"
 
 import asyncio
 import sys
@@ -129,11 +129,11 @@ async def main() -> None:
 
     downloader: Downloader = Downloader(configuration, select_menu_indicator, temporary_files_directory_path, ffmpeg_executable_path)
 
-    if not configuration["warning_configuration"]["silence_undeleted_temp_file_warning"]:
+    if not configuration["warning_configuration"]["silence_existing_temporary_files_warning"]:
         number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
 
         if number_of_existing_temp_files > 0: 
-            spaced_print(f"WARNING: You have {number_of_existing_temp_files} temporary file(s)!")
+            spaced_print(f"WARNING: You have {number_of_existing_temp_files} temporary file(s) that can be removed! ({str(temporary_files_directory_path)})")
 
     while True:
         main_menu_option: MainMenuOption = pick(
