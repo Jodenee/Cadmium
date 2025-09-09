@@ -10,6 +10,6 @@ else:
         exit(1)
 
 class Colours(StrEnum):
-    CADMIUM_RED    = "#E30022"     # Is the ground beneath
+    CADMIUM_RED    = "#E30022"  # Is the ground beneath
     CADMIUM_ORANGE = "#ED872D"  # Everything I see
     CADMIUM_YELLOW = "#FFF600"  # Is the air I breath
