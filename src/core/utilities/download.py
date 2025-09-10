@@ -3,19 +3,17 @@ from typing import Any, Generator, List, Optional, Tuple,cast
 from pick import pick, Option
 from pytubefix.async_youtube import AsyncYouTube
 from pytubefix import YouTube, Playlist, Stream, StreamQuery, Channel
+from pytubefix.exceptions import MaxRetriesExceeded
 from ffmpeg.asyncio import FFmpeg
 from pathlib import Path
 
-from core.custom_types.channel_download_result import ChannelDownloadResult
-from core.custom_types.failed_download_information import FailedDownloadInformation
-from core.utilities.pytubefix_extensions import stream_default_filename, stream_repr
-
 from ..lib import MediaDownloadDisplay, MediaConversionDisplay
-from ..custom_types import Configuration, VideoDownloadResult, PlaylistDownloadResult
+from ..custom_types import Configuration, VideoDownloadResult, PlaylistDownloadResult, FailedDownloadInformation, ChannelDownloadResult
 from ..enums import DownloadFormat
-from ..exceptions import NoStreamsFoundError, VideoDownloadSkipped, DownloadCancelled, InvalidSettingError
+from ..exceptions import NoStreamsFoundError, VideoDownloadSkipped, DownloadCancelled, InvalidConfigurationError
 from .console import spaced_print
 from .os import safe_full_filename, safe_os_name
+from .pytubefix_extensions import stream_default_filename, stream_repr
 
 class Downloader:
     def __init__(self, configuration: Configuration, select_menu_indicator: str, temporary_files_directory_path: Path, ffmpeg_executable_path: Optional[Path] = None):
@@ -52,7 +50,7 @@ class Downloader:
                 download_path = await self._download_best_of_both(youtube_video, download_directory, filename_prefix)
             elif download_format == DownloadFormat.CUSTOM:
                 download_path = await self._download_custom(youtube_video, download_directory, filename_prefix)
-        except (VideoDownloadSkipped, DownloadCancelled) as exception:
+        except (VideoDownloadSkipped, DownloadCancelled, MaxRetriesExceeded) as exception:
             return {
                 "success": False,
                 "youtube_video_title": youtube_video_title,
@@ -156,9 +154,9 @@ class Downloader:
         video_custom_file_extension = self.configuration["download_behavior_configuration"]["convert_video_downloads_to"]
 
         if should_convert and not self.ffmpeg_executable_path:
-            raise InvalidSettingError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
+            raise InvalidConfigurationError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
         elif video_custom_file_extension == None or len(video_custom_file_extension.strip()) == 0 and should_convert:
-            raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
+            raise InvalidConfigurationError("convert_video_only_downloads_to", "is empty")
 
         safe_filename = safe_full_filename(
             full_filename=await stream_default_filename(stream), 
@@ -226,10 +224,14 @@ class Downloader:
             )
             ffmpeg.on("progress", conversion_display.on_progress)
             
-            await ffmpeg.execute()
+            try:
+                await ffmpeg.execute()
 
-            conversion_display.progress_bar.n = conversion_display.progress_bar.total
-            conversion_display.progress_bar.refresh()
+                conversion_display.progress_bar.n = conversion_display.progress_bar.total
+                conversion_display.progress_bar.refresh()
+            except:
+                ffmpeg.terminate()
+                raise
 
             conversion_display.progress_bar.close()
             spaced_print("Conversion was successful!")
@@ -247,10 +249,10 @@ class Downloader:
         video_only_custom_file_extension = self.configuration["download_behavior_configuration"]["convert_video_only_downloads_to"]
 
         if should_convert and not self.ffmpeg_executable_path:
-            raise InvalidSettingError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
+            raise InvalidConfigurationError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
         
         if video_only_custom_file_extension == None or len(video_only_custom_file_extension.strip()) == 0 and should_convert:
-            raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
+            raise InvalidConfigurationError("convert_video_only_downloads_to", "is empty")
         
         safe_filename = safe_full_filename(
             full_filename=await stream_default_filename(stream),
@@ -287,7 +289,7 @@ class Downloader:
             return Path(download_file_path)
         else:
             if not self.ffmpeg_executable_path:
-                raise InvalidSettingError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
+                raise InvalidConfigurationError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
 
             temp_file_download_path: Optional[str] = stream.download(
                 output_path=str(self.temporary_files_directory_path),
@@ -321,10 +323,14 @@ class Downloader:
             )
             ffmpeg.on("progress", conversion_display.on_progress)
             
-            await ffmpeg.execute()
+            try:
+                await ffmpeg.execute()
 
-            conversion_display.progress_bar.n = conversion_display.progress_bar.total
-            conversion_display.progress_bar.refresh()
+                conversion_display.progress_bar.n = conversion_display.progress_bar.total
+                conversion_display.progress_bar.refresh()
+            except:
+                ffmpeg.terminate()
+                raise
 
             conversion_display.progress_bar.close()
             spaced_print("Conversion was successful!")
@@ -342,10 +348,10 @@ class Downloader:
         video_custom_file_extension = self.configuration["download_behavior_configuration"]["convert_audio_only_downloads_to"]
 
         if should_convert and not self.ffmpeg_executable_path:
-            raise InvalidSettingError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
+            raise InvalidConfigurationError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
 
         if video_custom_file_extension == None or len(video_custom_file_extension.strip()) == 0 and should_convert:
-            raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
+            raise InvalidConfigurationError("convert_video_only_downloads_to", "is empty")
 
         safe_filename = safe_full_filename(
             full_filename=await stream_default_filename(stream), 
@@ -382,7 +388,7 @@ class Downloader:
             return Path(download_file_location)
         else:
             if not self.ffmpeg_executable_path:
-                raise InvalidSettingError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
+                raise InvalidConfigurationError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
 
             download_file_location: Optional[str] = stream.download(
                 output_path=str(self.temporary_files_directory_path),
@@ -416,10 +422,14 @@ class Downloader:
             )
             ffmpeg.on("progress", conversion_display.on_progress)
             
-            await ffmpeg.execute()
+            try:
+                await ffmpeg.execute()
 
-            conversion_display.progress_bar.n = conversion_display.progress_bar.total
-            conversion_display.progress_bar.refresh()
+                conversion_display.progress_bar.n = conversion_display.progress_bar.total
+                conversion_display.progress_bar.refresh()
+            except:
+                ffmpeg.terminate()
+                raise
 
             conversion_display.progress_bar.close()
             print("\nConversion was successful!", end="\n")
@@ -456,7 +466,7 @@ class Downloader:
             return true_download_directory
         else:
             if not self.ffmpeg_executable_path:
-                raise InvalidSettingError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
+                raise InvalidConfigurationError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
 
             video_stream: Optional[Stream] = (await youtube_video.streams()).filter(is_dash=True, only_video=True).first()
             audio_stream: Optional[Stream] = (await youtube_video.streams()).filter(is_dash=True, only_audio=True).desc().first()
@@ -470,7 +480,7 @@ class Downloader:
             merged_file_extension = self.configuration["download_behavior_configuration"]["best_of_both_merged_file_format"]
 
             if merged_file_extension == None or len(merged_file_extension.strip()) == 0:
-                raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
+                raise InvalidConfigurationError("convert_video_only_downloads_to", "is empty")
             
             merged_filename = safe_full_filename(
                 full_filename=await stream_default_filename(video_stream),
@@ -542,10 +552,14 @@ class Downloader:
             )
             ffmpeg.on("progress", conversion_display.on_progress)
             
-            await ffmpeg.execute()
+            try:
+                await ffmpeg.execute()
 
-            conversion_display.progress_bar.n = conversion_display.progress_bar.total
-            conversion_display.progress_bar.refresh()
+                conversion_display.progress_bar.n = conversion_display.progress_bar.total
+                conversion_display.progress_bar.refresh()
+            except:
+                ffmpeg.terminate()
+                raise
 
             conversion_display.progress_bar.close()
             spaced_print("Merge Successful!")
@@ -582,10 +596,10 @@ class Downloader:
         video_custom_file_extension = self.configuration["download_behavior_configuration"]["convert_custom_downloads_to"]
 
         if should_convert and not self.ffmpeg_executable_path:
-            raise InvalidSettingError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
+            raise InvalidConfigurationError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
 
         if video_custom_file_extension == None or len(video_custom_file_extension.strip()) == 0 and should_convert:
-            raise InvalidSettingError("convert_video_only_downloads_to", "is empty")
+            raise InvalidConfigurationError("convert_video_only_downloads_to", "is empty")
 
         for picked_option_info in stream_pick_menu:
             option: Option = cast(Tuple[Option, int], picked_option_info)[0]
@@ -659,10 +673,14 @@ class Downloader:
                 )
                 ffmpeg.on("progress", conversion_display.on_progress)
                 
-                await ffmpeg.execute()
+                try:
+                    await ffmpeg.execute()
 
-                conversion_display.progress_bar.n = conversion_display.progress_bar.total
-                conversion_display.progress_bar.refresh()
+                    conversion_display.progress_bar.n = conversion_display.progress_bar.total
+                    conversion_display.progress_bar.refresh()
+                except:
+                    ffmpeg.terminate()
+                    raise
 
                 conversion_display.progress_bar.close()
                 spaced_print("Conversion Successful!")
