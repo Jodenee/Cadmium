@@ -36,7 +36,7 @@ from sys import exit
 
 from core.enums import DownloadFormat, MediaType
 from core.enums.main_menu_option import MainMenuOption
-from core.exceptions import InvalidSettingError
+from core.exceptions import InvalidConfigurationError
 from core.custom_types import Configuration, DownloadConfiguration
 from core.lib import ClearDirectoryDisplay
 from core.utilities.configuration import load_configuration, create_configuration_file
@@ -133,7 +133,11 @@ async def main() -> None:
         number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
 
         if number_of_existing_temp_files > 0: 
-            spaced_print(f"WARNING: You have {number_of_existing_temp_files} temporary file(s) that can be removed! ({str(temporary_files_directory_path)})")
+            pick(
+                [ "Continue" ], 
+                f"WARNING: You have {number_of_existing_temp_files} temporary file(s) that can be removed! ({str(temporary_files_directory_path)})", 
+                indicator=select_menu_indicator
+            )
 
     while True:
         main_menu_option: MainMenuOption = pick(
@@ -164,14 +168,14 @@ async def main() -> None:
                 custom_download_directory = download_configuration["download_location_override"]
 
                 if (custom_download_directory == None):
-                    raise InvalidSettingError(f"{str(download_format)}_download_location_override", "is empty")
+                    raise InvalidConfigurationError(f"{str(download_format)}_download_location_override", "is empty")
 
                 download_directory = Path(custom_download_directory).resolve()
 
                 if (not download_directory.exists()):
-                    raise InvalidSettingError(f"{str(download_format)}_download_location_override", "does not exist")      
+                    raise InvalidConfigurationError(f"{str(download_format)}_download_location_override", "does not exist")      
                 elif (download_directory.is_file()):
-                    raise InvalidSettingError(f"{str(download_format)}_download_location_override", "is a file")
+                    raise InvalidConfigurationError(f"{str(download_format)}_download_location_override", "is a file")
 
             urls: List[str]
 
@@ -243,14 +247,14 @@ if __name__ == "__main__":
         asyncio.run(main())
     except BotDetection:
         spaced_print("Cadmium was detected as a bot, please refrain from downloading more videos for a while to prevent getting limited or blocked.")
-    except (InvalidSettingError) as exception:
+    except (InvalidConfigurationError) as exception:
         spaced_print(str(exception))
     except KeyboardInterrupt:
         exit(0)
     except BaseException as exception:
         spaced_print(
-            f"Unexpected exception was raised. Please make an issue on the GitHub with the following error.\n"
-            f"{exception.__class__.__name__}: {exception}\n\n"
+            f"Fatal Error: Unexpected error was raised. Please make an issue on the GitHub with the following error.\n\n"
+            f"{exception.__class__.__name__}: {exception}\n"
             f"Full Traceback:\n{get_traceback()}"
         )
     else:
