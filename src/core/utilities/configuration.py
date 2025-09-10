@@ -1,8 +1,10 @@
 from pathlib import Path
 from typing import Any, Dict, Optional
-from json import loads as json_loads, dumps as json_dumps
+from json import load as json_load, dumps as json_dumps
 
 from ..custom_types import Configuration
+
+# constants
 
 default_configuration: Configuration = {
     "download_behavior_configuration": {
@@ -56,6 +58,7 @@ default_configuration: Configuration = {
     }
 }
 
+# functions
 
 def create_configuration_file(path: Path, configuration: Optional[Configuration] = default_configuration) -> None:
     file_content: str = json_dumps(configuration, indent=4)
@@ -67,8 +70,8 @@ def create_configuration_file(path: Path, configuration: Optional[Configuration]
 def load_configuration(config_file_path: Path) -> Configuration:
     try:
         with config_file_path.open("r") as config_file:
-            json_data: Dict[str, Any] = json_loads(config_file.read())
+            json_data: Configuration = json_load(config_file)
 
-            return Configuration(**json_data)
+        return json_data
     except BaseException:
         return default_configuration
