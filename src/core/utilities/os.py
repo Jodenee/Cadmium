@@ -4,9 +4,9 @@ from typing import Callable, Dict, List, Optional, Tuple, TypeVar
 from platform import system
 from re import sub as re_sub
 
-from core.custom_types.configuration import Configuration
-from core.enums.os import OperatingSystem
-from core.exceptions.invalid_setting_error import InvalidSettingError
+from ..custom_types.configuration import Configuration
+from ..enums.os import OperatingSystem
+from ..exceptions.invalid_configuration_error import InvalidConfigurationError
 
 # Generics
 
@@ -154,7 +154,7 @@ def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
             ffmpeg_path = Path(raw_ffmpeg_path)
 
             if not ffmpeg_path.exists():
-                raise InvalidSettingError("ffmpeg_path", f"{raw_ffmpeg_path} does not exist")
+                raise InvalidConfigurationError("ffmpeg_path", f"{raw_ffmpeg_path} does not exist")
             
             return ffmpeg_path
 
