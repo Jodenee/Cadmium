@@ -1,3 +1,3 @@
-class InvalidSettingError(BaseException):
-    def __init__(self, setting_name: str, context: str) -> None:
-        super().__init__(f"Setting ({setting_name}) {context}.")
+class InvalidConfigurationError(BaseException):
+    def __init__(self, configuration_name: str, context: str) -> None:
+        super().__init__(f"Configuration ({configuration_name}) {context}.")
