@@ -1,6 +1,8 @@
 from typing import List, Optional
 
-from core.custom_types.failed_download_information import FailedDownloadInformation
+from ..custom_types.failed_download_information import FailedDownloadInformation
+
+# functions
 
 def spaced_print(*objects, sep: Optional[str] = "", flush: bool = False, end: Optional[str] = None) -> None:
     print(*("\n", *objects), sep=sep, flush=flush, end=end)
