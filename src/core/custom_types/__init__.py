@@ -9,3 +9,5 @@ from .playlist_download_result import PlaylistDownloadResult
 from .ui_configuration import UIConfiguration
 from .external_dependency_configuration import ExternalDependencyConfiguration
 from .ffmpeg_configuration import FFmpegConfiguration
+from .failed_download_information import FailedDownloadInformation
+from .channel_download_result import ChannelDownloadResult
