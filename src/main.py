@@ -72,9 +72,9 @@ temporary_file_extensions = [ ".webm", ".m4a", ".mp4", ".mp3" ]
 select_menu_indicator = ">"
 
 main_menu_options: Tuple[Option, ...] = (
-    Option(MainMenuOption.DOWNLOAD_VIDEOS.value, MainMenuOption.DOWNLOAD_VIDEOS, "Download videos."),
+    Option(MainMenuOption.DOWNLOAD.value, MainMenuOption.DOWNLOAD, "Download videos."),
     Option(f"{MainMenuOption.EDIT_CONFIGURATION.value} (Coming soon)", MainMenuOption.EDIT_CONFIGURATION, "Edit Cadmium's configuration.", enabled=False),
-    Option(MainMenuOption.EXIT_PROGRAM.value, MainMenuOption.EXIT_PROGRAM, "Exit the program.")
+    Option(MainMenuOption.EXIT.value, MainMenuOption.EXIT, "Exit the program.")
 )
 
 download_format_menu_options: Tuple[Option, ...] = (
@@ -146,7 +146,7 @@ async def main() -> None:
             indicator=select_menu_indicator
         )[0].value # type: ignore
 
-        if main_menu_option == MainMenuOption.DOWNLOAD_VIDEOS:
+        if main_menu_option == MainMenuOption.DOWNLOAD:
             download_format: DownloadFormat = pick(
                 download_format_menu_options, 
                 "Which format should the videos be downloaded as", 
@@ -225,7 +225,7 @@ async def main() -> None:
 
             input("\nDownloading complete! (Press enter to continue) ")
             clear_console()
-        elif main_menu_option == MainMenuOption.EXIT_PROGRAM:
+        elif main_menu_option == MainMenuOption.EXIT:
             if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
                 total_files_to_remove = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
 
