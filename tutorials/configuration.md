@@ -70,7 +70,7 @@ A short guide for editing Cadmium's configurations.
 ## Strings
 * "" and "mp4" is how text is stored, so `""` is simply a string containing no text and `"mp4"` simply stores the text `mp4`. 
 
-* It is **VERY IMPORTANT** to note that when pasting a file path on Windows such as `C:\myfolder\downloads` you will need to replace the backslashes `\` with a double backslash `\\`, the result should look similar to this `C:\\myfolder\\downloads`, the reason for this need is quite complex and wont be explained here but for those who are curious here is a [source](https://stackoverflow.com/a/59391584).
+* It is **VERY IMPORTANT** to note that when pasting a file path on Windows such as `C:\my_folder\downloads` you will need to replace the backslashes `\` with a double backslash `\\`, the result should look similar to this `C:\\my_folder\\downloads`, the reason for this need is quite complex and wont be explained here but for those who are curious here is a [source](https://stackoverflow.com/a/59391584).
 
 ## Configuration Guide
 
@@ -100,42 +100,42 @@ A short guide for editing Cadmium's configurations.
 ### Quality Of Life Configuration
 
 | Setting                                       | Default | Description                                                                                                                           | Required Dependencies |
-|-----------------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------|------------|
-| `use_video_download_location_override`        | `false` | Whether to put "video" downloads inside the folder specified in `video_download_location_override`.                                   | `None`     |
-| `use_video_only_download_location_override`   | `false` | Whether to put "video only" downloads inside the folder specified in `video_only_download_location_override`.                         | `None`     |
-| `use_audio_only_download_location_override`   | `false` | Whether to put "video only" downloads inside the folder specified in `audio_only_download_location_override`.                         | `None`     |
-| `use_best_of_both_download_location_override` | `false` | Whether to put "best of both" downloads inside the folder specified in `best_of_both_download_location_override`.                     | `None`     |
-| `use_custom_download_location_override`       | `false` | Whether to put "custom" downloads inside the folder specified in `custom_download_location_override`.                                 | `None`     |
-| `video_download_location_override`            | `""`    | If `use_video_download_location_override` is enabled, "video" downloads will be put inside the specified folder here.                 | `None`     |
-| `video_only_download_location_override`       | `""`    | If `use_video_only_download_location_override` is enabled, "video only" downloads will be put inside the specified folder here.       | `None`     |
-| `audio_only_download_location_override`       | `""`    | If `use_audio_only_download_location_override` is enabled, "audio only" downloads will be put inside the specified folder here.       | `None`     |
-| `best_of_both_download_location_override`     | `""`    | If `use_best_of_both_download_location_override` is enabled, "best of both" downloads will be put inside the specified folder here.   | `None`     |
-| `custom_download_location_override`           | `""`    | If `use_custom_download_location_override` is enabled, "custom" downloads will be put inside the specified folder here.               | `None`     |
-| `put_playlist_videos_in_folder`               | `true`  | If enabled, when downloading playlists a folder will be made to contain the playlist's videos.                                        | `None`     |
-| `put_channel_videos_in_folder`                | `true`  | If enabled, when downloading channels a folder will be made to contain the channel's videos.                                          | `None`     |
-| `put_custom_streams_in_folder`                | `true`  | If enabled, when downloading custom streams a folder will be made to contain the video's streams.                                     | `None`     |
-| `display_chosen_stream_on_start_of_download`  | `true`  | If enabled, a message will be displayed showcasing information about the stream chosen such as file type, resolution fps and bitrate. | `None`     |
-| `clear_temporary_files_before_exiting`        | `false` | If enabled, when choosing "exit program" in the main menu all temporary files will be safely removed.                                 | `None`     |
+|-----------------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
+| `use_video_download_location_override`        | `false` | Whether to put "video" downloads inside the folder specified in `video_download_location_override`.                                   | `None`                |
+| `use_video_only_download_location_override`   | `false` | Whether to put "video only" downloads inside the folder specified in `video_only_download_location_override`.                         | `None`                |
+| `use_audio_only_download_location_override`   | `false` | Whether to put "video only" downloads inside the folder specified in `audio_only_download_location_override`.                         | `None`                |
+| `use_best_of_both_download_location_override` | `false` | Whether to put "best of both" downloads inside the folder specified in `best_of_both_download_location_override`.                     | `None`                |
+| `use_custom_download_location_override`       | `false` | Whether to put "custom" downloads inside the folder specified in `custom_download_location_override`.                                 | `None`                |
+| `video_download_location_override`            | `""`    | If `use_video_download_location_override` is enabled, "video" downloads will be put inside the specified folder here.                 | `None`                |
+| `video_only_download_location_override`       | `""`    | If `use_video_only_download_location_override` is enabled, "video only" downloads will be put inside the specified folder here.       | `None`                |
+| `audio_only_download_location_override`       | `""`    | If `use_audio_only_download_location_override` is enabled, "audio only" downloads will be put inside the specified folder here.       | `None`                |
+| `best_of_both_download_location_override`     | `""`    | If `use_best_of_both_download_location_override` is enabled, "best of both" downloads will be put inside the specified folder here.   | `None`                |
+| `custom_download_location_override`           | `""`    | If `use_custom_download_location_override` is enabled, "custom" downloads will be put inside the specified folder here.               | `None`                |
+| `put_playlist_videos_in_folder`               | `true`  | If enabled, when downloading playlists a folder will be made to contain the playlist's videos.                                        | `None`                |
+| `put_channel_videos_in_folder`                | `true`  | If enabled, when downloading channels a folder will be made to contain the channel's videos.                                          | `None`                |
+| `put_custom_streams_in_folder`                | `true`  | If enabled, when downloading custom streams a folder will be made to contain the video's streams.                                     | `None`                |
+| `display_chosen_stream_on_start_of_download`  | `true`  | If enabled, a message will be displayed showcasing information about the stream chosen such as file type, resolution fps and bitrate. | `None`                |
+| `clear_temporary_files_before_exiting`        | `false` | If enabled, when choosing "exit program" in the main menu all temporary files will be safely removed.                                 | `None`                |
 
 ### Warning Configuration
 
-| Setting                                      | Default | Description                                                                                                              | Required Dependencies |
-|----------------------------------------------|---------|--------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| `silence_existing_temporary_files_warning`   | `false` | Whether to display a warning at the start of the download process if temporary files exist. Enable `clear_temporary_files_before_exiting` for automatic removal of these files. | `None` |
+| Setting                                      | Default | Description                                                                                                                                                                     | Required Dependencies |
+|----------------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
+| `silence_existing_temporary_files_warning`   | `false` | Whether to display a warning at the start of the download process if temporary files exist. Enable `clear_temporary_files_before_exiting` for automatic removal of these files. | `None`                |
 
 ### UI Configuration
 
-| Setting                                      | Default | Description                                                                                                              | Required Dependencies |
-|----------------------------------------------|---------|--------------------------------------------------------------------------------------------------------------------------|-----------------------|
-| `custom_download_bar_colour`                 | `""`    | Used to change the colour of the download progress bar, only accepts [hex colours](https://htmlcolorcodes.com/color-picker/) or common colour names. | `None` | 
-| `custom_convert_bar_colour`                  | `""`    | Used to change the colour of the video conversion progress bar, only accepts [hex colours](https://htmlcolorcodes.com/color-picker/) or common colour names. | `None` |
-| `custom_clear_directory_bar_colour`          | `""`    | Used to change the colour of the folder clear progress bar, only accepts [hex colours](https://htmlcolorcodes.com/color-picker/) or common colour names. | `None` |
+| Setting                             | Default | Description                                                                                                                                                  | Required Dependencies |
+|-------------------------------------|---------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
+| `custom_download_bar_colour`        | `""`    | Used to change the colour of the download progress bar, only accepts [hex colours](https://htmlcolorcodes.com/color-picker/) or common colour names.         | `None`                | 
+| `custom_convert_bar_colour`         | `""`    | Used to change the colour of the video conversion progress bar, only accepts [hex colours](https://htmlcolorcodes.com/color-picker/) or common colour names. | `None`                |
+| `custom_clear_directory_bar_colour` | `""`    | Used to change the colour of the folder clear progress bar, only accepts [hex colours](https://htmlcolorcodes.com/color-picker/) or common colour names.     | `None`                |
 
 ### External Dependency Configuration
 
 | Setting                              | Default | Description                                                                                                                                         | Required Dependencies |
-|--------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|--------|
-| `try_find_ffmpeg_path_automatically` | `true`  | If enabled, Cadmium will attempt to locate an ffmpeg executable automatically. Does not search if `ffmpeg_executable_path` is given. (Checks $PATH) | `None` |
-| `ffmpeg_executable_path`             | `""`    | An absolute path leading to an FFmpeg executable, Cadmium will prefer `ffmpeg_executable_path` if `try_find_ffmpeg_path_automatically` is enabled.  | `None` |
+|--------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------|
+| `try_find_ffmpeg_path_automatically` | `true`  | If enabled, Cadmium will attempt to locate an ffmpeg executable automatically. Does not search if `ffmpeg_executable_path` is given. (Checks $PATH) | `None`                |
+| `ffmpeg_executable_path`             | `""`    | An absolute path leading to an FFmpeg executable, Cadmium will prefer `ffmpeg_executable_path` if `try_find_ffmpeg_path_automatically` is enabled.  | `None`                |
 
 If you are still not sure how a particular configuration works feel free to create an issue and await an answer.
