@@ -10,6 +10,6 @@ else:
         exit(1)
 
 class MainMenuOption(StrEnum):
-    DOWNLOAD_VIDEOS    = "download videos"
+    DOWNLOAD           = "download"
     EDIT_CONFIGURATION = "edit configuration"
-    EXIT_PROGRAM       = "exit program"
+    EXIT               = "exit"
