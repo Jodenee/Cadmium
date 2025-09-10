@@ -1,5 +1,5 @@
 from .invalid_youtube_url_error import InvalidYoutubeURLError
 from .no_streams_found_error import NoStreamsFoundError
-from .invalid_setting_error import InvalidSettingError
+from .invalid_configuration_error import InvalidConfigurationError
 from .video_download_skipped import VideoDownloadSkipped
 from .download_cancelled import DownloadCancelled
