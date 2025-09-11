@@ -22,10 +22,10 @@ Cadmium is a python command line application made to conveniently download youtu
 | Linux            | ✅        |
 | macOS            | N/A       |
 
-Cadmium is primarily developed on Windows, but tested on a Linux Mint virtual machine. Cadmium is not tested on macOS due to requiring apple hardware to run macOS.
+Cadmium is primarily developed on Windows, and tested on a Linux Mint virtual machine. Cadmium is not tested on macOS due to requiring apple hardware to run macOS.
 
 ## Download Instructions (prebuilt executable)
-This section will help instruct you through the download process, please note that this is for the prebuilt executable file. If you wish to build or run the source code please follow this  instead. 
+This section will help instruct you through the download process, please note that this is for the prebuilt executable file. If you wish to build or run the source code please follow this [tutorial](./tutorials/building_cadmium.md) instead. 
 
 1. Download the latest version of Cadmium from [*here*](https://github.com/Jodenee/Cadmium/releases) and extract it, please ensure you download the correct version for your os.
 2. Open the folder and run Cadmium.exe
