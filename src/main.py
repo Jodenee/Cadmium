@@ -28,13 +28,14 @@ import asyncio
 import sys
 import pick
 
-VSCODE_ARROW_KEY_UP = 450
-VSCODE_ARROW_KEY_DOWN = 456
-VSCODE_ARROW_KEY_RIGHT = 39
+ARROW_KEY_UP = 450
+ARROW_KEY_DOWN = 456
+ARROW_KEY_RIGHT = 261
 
-pick.KEYS_UP += (VSCODE_ARROW_KEY_UP, ord("w"), ord("8"))
-pick.KEYS_DOWN += (VSCODE_ARROW_KEY_DOWN, ord("s"), ord("2"))
-pick.KEYS_SELECT += (ord("d"), VSCODE_ARROW_KEY_RIGHT)
+pick.KEYS_UP += (ARROW_KEY_UP, ord("w"), ord("8"))
+pick.KEYS_DOWN += (ARROW_KEY_DOWN, ord("s"), ord("2"))
+pick.KEYS_SELECT += (ord("d"), ARROW_KEY_RIGHT )
+pick.KEYS_ENTER += (459, )
 
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
