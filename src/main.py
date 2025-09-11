@@ -26,6 +26,15 @@ __version__ = "1.0.0"
 
 import asyncio
 import sys
+import pick
+
+VSCODE_ARROW_KEY_UP = 450
+VSCODE_ARROW_KEY_DOWN = 456
+VSCODE_ARROW_KEY_RIGHT = 39
+
+pick.KEYS_UP += (VSCODE_ARROW_KEY_UP, ord("w"), ord("8"))
+pick.KEYS_DOWN += (VSCODE_ARROW_KEY_DOWN, ord("s"), ord("2"))
+pick.KEYS_SELECT += (ord("d"), VSCODE_ARROW_KEY_RIGHT)
 
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -66,26 +75,21 @@ default_custom_download_directory_path: Path = downloads_directory_path.joinpath
 # constant values
 
 configuration: Configuration = load_configuration(configuration_file_path)
-
 temporary_file_extensions = [ ".webm", ".m4a", ".mp4", ".mp3" ]
-
 select_menu_indicator = ">"
-
 main_menu_options: Tuple[Option, ...] = (
     Option(MainMenuOption.DOWNLOAD.value, MainMenuOption.DOWNLOAD, "Download videos."),
     Option(f"{MainMenuOption.EDIT_CONFIGURATION.value} (Coming soon)", MainMenuOption.EDIT_CONFIGURATION, "Edit Cadmium's configuration.", enabled=False),
     Option(MainMenuOption.EXIT.value, MainMenuOption.EXIT, "Exit the program.")
 )
-
 download_format_menu_options: Tuple[Option, ...] = (
     Option(DownloadFormat.VIDEO.value, DownloadFormat.VIDEO, "Downloads both video and audio tracks but at low quality."), 
     Option(DownloadFormat.VIDEO_ONLY.value, DownloadFormat.VIDEO_ONLY, "Downloads only the video track but at high quality."), 
     Option(DownloadFormat.AUDIO_ONLY.value, DownloadFormat.AUDIO_ONLY, "Downloads only the audio track but at high quality."), 
     Option(DownloadFormat.BEST_OF_BOTH.value, DownloadFormat.BEST_OF_BOTH, "Downloads both the video and audio tracks but at high quality."),
     Option(DownloadFormat.CUSTOM.value, DownloadFormat.CUSTOM, "Downloads any streams of your choosing."),
-    Option("return to main menu", "return to main menu", "Go back to the main menu without downloading anything.")
+    Option("back", "back", "Go back to the main menu without downloading anything.")
 )
-
 download_format_to_custom_download_configurations: Dict[DownloadFormat, DownloadConfiguration] = {
     DownloadFormat.VIDEO: {
         "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_video_download_location_override"],
@@ -153,7 +157,7 @@ async def main() -> None:
                 indicator=select_menu_indicator
             )[0].value # type: ignore
 
-            if download_format == "return to main menu":
+            if download_format == "back":
                 continue
 
             download_configuration = download_format_to_custom_download_configurations[download_format]
