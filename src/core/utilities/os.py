@@ -100,16 +100,10 @@ def safe_full_filename(full_filename: str, fallback_filename: str, filename_pref
     filename: str = split_full_filename[0]
     file_extension: str = split_full_filename[len(split_full_filename) - 1] if extension_override == None else extension_override
 
-    if filename_prefix is None:
-        max_filename_length: int = max_length - (len(file_extension) + 1) # calculates how long the file's name can be
-        safe_filename: str = safe_os_name(filename, fallback_filename, max_filename_length)
+    max_filename_length: int = max_length - (len(filename_prefix or "") + len(file_extension) + 1) # calculates how long the file's name can be
+    safe_filename: str = safe_os_name(filename, fallback_filename, max_filename_length)
 
-        return f"{safe_filename}.{file_extension}"
-    else:
-        max_filename_length: int = max_length - (len(file_extension) + len(filename_prefix) + 1) # calculates how long the file's name can be
-        safe_filename: str = safe_os_name(filename, fallback_filename, max_filename_length)
-
-        return f"{filename_prefix}{safe_filename}.{file_extension}"
+    return f"{filename_prefix or ''}{safe_filename}.{file_extension}"
 
 
 def count_directory_files(path: Path, with_extensions: List[str]) -> int:
