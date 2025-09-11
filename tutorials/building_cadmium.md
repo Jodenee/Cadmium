@@ -31,7 +31,7 @@ Cadmium is written in python, so you will need to have a python interpreter on y
     * `python -m pip install -r src/requirements.txt` 
 4. Run the below command to build Cadmium into an executable.
     * `pyinstaller --onedir --name Cadmium src/main.py`.
-5. Done! You may now run the Cadmium executable or run main.py inside Cadmium/src to run the source code, the following steps are optional but are worth following for the full experience.
+5. Done! You may now run the Cadmium executable or run main.py with `python src/main.py`, the following steps are optional but are worth following for the full experience.
 6. Download and install FFmpeg using the following resources.
     * Required to convert files as well as merge files.
     * [Download Page](https://ffmpeg.org/download.html) 
