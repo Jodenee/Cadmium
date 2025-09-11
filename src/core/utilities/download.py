@@ -9,10 +9,10 @@ from pathlib import Path
 
 from ..lib import MediaDownloadDisplay, MediaConversionDisplay
 from ..custom_types import Configuration, VideoDownloadResult, PlaylistDownloadResult, FailedDownloadInformation, ChannelDownloadResult
-from ..enums import DownloadFormat
-from ..exceptions import NoStreamsFoundError, VideoDownloadSkipped, DownloadCancelled, InvalidConfigurationError
+from ..enums import DownloadFormat, OperatingSystem
+from ..exceptions import NoStreamsFoundError, VideoDownloadSkipped, DownloadCancelled, InvalidConfigurationError, ImpossibleDownloadPath
 from .console import spaced_print
-from .os import safe_full_filename, safe_os_name
+from .os import os_choose, safe_full_filename, safe_os_name
 from .pytubefix_extensions import stream_default_filename, stream_repr
 
 class Downloader:
@@ -162,7 +162,11 @@ class Downloader:
             full_filename=await stream_default_filename(stream), 
             fallback_filename=f"Video ({youtube_video.video_id})", 
             filename_prefix=filename_prefix,
-            extension_override=None if not should_convert else video_custom_file_extension
+            extension_override=None if not should_convert else video_custom_file_extension,
+            max_length=os_choose({
+                OperatingSystem.WINDOWS: min(255 - (len(str(download_directory)) + 1), 255), # the added 1 is to include the delimiter into the calculation
+                OperatingSystem.DARWIN: min(1024 - (len(str(download_directory)) + 1), 255)
+            }, min(4096 - (len(str(download_directory)) + 1), 255)) 
         )
         video_full_file_path = download_directory / safe_filename
 
@@ -609,7 +613,11 @@ class Downloader:
                 full_filename=await stream_default_filename(stream), 
                 fallback_filename=f"Video ({youtube_video.video_id})", 
                 filename_prefix=f"{filename_prefix or ''}{stream.itag}-",
-                extension_override=None if not should_convert else video_custom_file_extension
+                extension_override=None if not should_convert else video_custom_file_extension,
+                max_length=os_choose({
+                    OperatingSystem.WINDOWS: min(255 - (len(str(true_download_directory)) + 1), 255), # the added 1 is to include the delimiter into the calculation
+                    OperatingSystem.DARWIN: min(1024 - (len(str(true_download_directory)) + 1), 255)
+                }, min(4096 - (len(str(true_download_directory)) + 1), 255)) 
             )
             safe_full_file_path = true_download_directory / safe_filename
             
