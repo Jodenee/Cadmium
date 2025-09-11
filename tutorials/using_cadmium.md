@@ -3,8 +3,8 @@ This tutorial will go over how you can use Cadmium, as well as some other concep
 
 ## Basic Concepts
 
-### `configurations.json`
-Cadmium stores it's configurations inside `configurations.json`. To learn how to edit Cadmium's configurations it is encouraged to look at this [tutorial](./configuration.md). 
+### `configuration.json`
+Cadmium stores it's configurations inside `configuration.json`. To learn how to edit Cadmium's configurations it is encouraged to look at this [tutorial](./configuration.md). 
 
 ### `to_download.txt`
 Cadmium will read the `to_download.txt` file to know what to download. It accepts urls of videos, shorts, playlists and channels.
@@ -29,7 +29,7 @@ A download format refers to how media files, like videos or audio, are packaged 
 | **Video**        | Downloads both video and audio tracks in one file but at **low quality**.        | Useful for quick downloads with limited storage.          |
 | **Video Only**   | Downloads only the video track but at **high quality**.                          | Best for high-quality visuals without audio.              |
 | **Audio Only**   | Downloads only the audio track but at **high quality**.                          | Perfect for music or podcasts where video is unnecessary. |
-| **Best of Both** | Downloads both the video and audio tracks in 2 separate files but at **high quality**. (Tip: Enabling the `merge_best_of_both_downloads_into_one_file` configuration will result in 1 video file containing the best video and audio, read more here.) | Ideal for full media experiences, such as movies or shows. |
+| **Best of Both** | Downloads both the video and audio tracks in 2 separate files but at **high quality**. (Tip: Enabling the `merge_best_of_both_downloads_into_one_file` configuration will result in 1 video file containing the best video and audio, read more [here](../tutorials/configuration.md#download-behavior-configuration).) | Ideal for full media experiences, such as movies or shows. |
 | **Custom**       | Downloads streams of your choosing, allowing for a tailored download experience. | Great for advanced users who want specific content.       |
 
 
@@ -46,6 +46,8 @@ First before opening Cadmium the `to_download.txt` file must be filled with urls
 ![Image showing to_download.txt filled in.](../assets/tutorial/using_cadmium_assets/PasteUrlIntoToDownloadTextFile.png)
 
 ### 3. Open Cadmium
+> Please note that if this is your first time running Cadmium, you may get a pop up window from antivirus software and windows, while this is normal behavior for windows and antivirus software these warning may cause some unrest, if at any point you are not comfortable with the prebuilt executable a [tutorial](../tutorials/building_cadmium.md) exists to show you how to build Cadmium yourself.
+
 Once cadmium is opened, choose the "download" option using the up and down arrow keys and press [Enter].
 
 ![Image showing how to choose download main menu option.](../assets/tutorial/using_cadmium_assets/CadmiumMainMenu.png)
@@ -61,7 +63,7 @@ After selecting the format Cadmium will begin the downloading process. After the
 ![Image showing video download process.](../assets/tutorial/using_cadmium_assets/CadmiumDownloadProcess.png)
 
 ### 6. Exiting
-After you will be taken back to the main menu, to exit select the "exit program" option using the up and down arrow keys and press [Enter].
+After you will be taken back to the main menu, to exit select the "exit" option using the up and down arrow keys and press [Enter].
 
 ![Image showing how to exit Cadmium.](../assets/tutorial/using_cadmium_assets/ExitCadmium.png)
 
