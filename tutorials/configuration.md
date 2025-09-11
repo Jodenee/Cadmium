@@ -62,7 +62,7 @@ When opening `configuration.json` for the first time you will be met with the fo
 A short guide for editing Cadmium's configurations. 
 
 ## Important
-* In the case of a mistake while editing the `configuration.json` file, the `configurations.json` file may be safely deleted, and a new one will be created automatically by Cadmium when run containing the default configurations.
+* In the case of a mistake while editing the `configuration.json` file, the `configuration.json` file may be safely deleted, and a new one will be created automatically by Cadmium when run containing the default configurations.
 
 ## Booleans
 * `true` and `false` can be thought of as `on` and `off` respectfully, so when you wish to enable a configuration you use `true` and to disable a configuration you use `false`.
