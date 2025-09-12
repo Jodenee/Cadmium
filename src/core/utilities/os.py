@@ -28,18 +28,22 @@ def os_choose(map: Dict[OperatingSystem, T], default: T) -> T:
         return default
 
 
+# Constants
+
+MAX_OS_PATH_LENGTH = os_choose({
+    OperatingSystem.WINDOWS: 255, # the added 1 is to include the delimiter into the calculation
+    OperatingSystem.DARWIN: 1024
+}, 4096)
+MAX_OS_FILENAME_LENGTH = os_choose({}, 255)
+
+
 def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
-    replace_regex: Dict[OperatingSystem, str] = {
+    replace_regex: str = os_choose({
         OperatingSystem.WINDOWS: r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$",
         OperatingSystem.LINUX: r"[(\\0)\/.\-*?|&;<>#!]|^\.+|\.+$",
         OperatingSystem.DARWIN: r"[\/:*?\"<>|]",
-        OperatingSystem.UNIX: r"",
-        OperatingSystem.JAVA: r"",
-        OperatingSystem.IOS: r"",
-        OperatingSystem.ANDROID: r"",
-        OperatingSystem.UNKNOWN: r""
-    }
-    reserved_filenames: Dict[OperatingSystem, Tuple[str, ...]] = {
+    }, r"")
+    reserved_filenames: Tuple[str, ...] = os_choose({
         OperatingSystem.WINDOWS: (
             "CON", 
             "PRN", 
@@ -64,7 +68,6 @@ def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
             "LPT8", 
             "LPT9"
         ),
-        OperatingSystem.LINUX: (),
         OperatingSystem.DARWIN: (
             ".DS_Store",
             ".Trashes",
@@ -75,17 +78,11 @@ def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
             ".DocumentRevisions",
             ".AppleDouble"
         ),
-        OperatingSystem.UNIX: (),
-        OperatingSystem.JAVA: (),
-        OperatingSystem.IOS: (),
-        OperatingSystem.ANDROID: (),
-        OperatingSystem.UNKNOWN: ()
-    }
-    os: OperatingSystem = get_os()
-    safe_name: str = re_sub(replace_regex[os], "", name).strip()
+    }, ())
+    safe_name: str = re_sub(replace_regex, "", name).strip()
     upper_case_safe_name: str = safe_name.upper()
 
-    for reserved_file_name in reserved_filenames[os]:
+    for reserved_file_name in reserved_filenames:
         if reserved_file_name == upper_case_safe_name: 
             safe_name = fallback_name
 
@@ -95,12 +92,22 @@ def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
     return safe_name[:max_length]
 
 
-def safe_full_filename(full_filename: str, fallback_filename: str, filename_prefix: Optional[str] = None, max_length: int = 255, extension_override: Optional[str] = None) -> str:
+def safe_full_filename(
+    full_filename: str, 
+    fallback_filename: str, 
+    filename_prefix: Optional[str] = None, 
+    max_length: int = MAX_OS_FILENAME_LENGTH, 
+    extension_override: Optional[str] = None
+) -> str:
     split_full_filename: List[str] = full_filename.rsplit(".", 1)
     filename: str = split_full_filename[0]
     file_extension: str = split_full_filename[len(split_full_filename) - 1] if extension_override == None else extension_override
 
     max_filename_length: int = max_length - (len(filename_prefix or "") + len(file_extension) + 1) # calculates how long the file's name can be
+    
+    if max_filename_length <= 0:
+        return ""
+
     safe_filename: str = safe_os_name(filename, fallback_filename, max_filename_length)
 
     return f"{filename_prefix or ''}{safe_filename}.{file_extension}"
