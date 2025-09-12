@@ -28,6 +28,8 @@ import asyncio
 import sys
 import pick
 
+from core.exceptions.impossible_download_path import ImpossibleDownloadPath
+
 ARROW_KEY_UP = 450
 ARROW_KEY_DOWN = 456
 ARROW_KEY_RIGHT = 261
@@ -252,8 +254,8 @@ if __name__ == "__main__":
         asyncio.run(main())
     except BotDetection:
         spaced_print("Cadmium was detected as a bot, please refrain from downloading more videos for a while to prevent getting limited or blocked.")
-    except (InvalidConfigurationError) as exception:
-        spaced_print(str(exception))
+    except (InvalidConfigurationError, ImpossibleDownloadPath) as exception:
+        spaced_print(f"Fatal Error: {exception}")
     except KeyboardInterrupt:
         exit(0)
     except BaseException as exception:
