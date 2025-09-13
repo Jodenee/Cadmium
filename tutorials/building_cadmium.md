@@ -3,7 +3,10 @@
 ## Q&A
 
 ### Why build it myself?
-Downloading executable files off the internet is not safe. Building the executable yourself is much safer as you guarantee the code inside the executable is not malicious.
+* Downloading executable files off the internet is not safe. 
+    * Building the executable yourself is much safer as you guarantee the code inside the executable is not malicious.
+* No prebuilt executables for your OS.
+    * Cadmium is currently only prebuilt for Windows 10/11 64-bit and Linux 64-bit, if you are using another operating system or CPU architecture Cadmium may not function, the only way to get around this is to build Cadmium yourself.
 
 ### Is there any difference between building an executable or running the raw source code with the python interpreter?
 If storage is low it is recommended to run the raw source code with the python interpreter. If not building the executable will be more convenient as there wont be a need to open a shell and run the program each time you wish to use Cadmium. 
