@@ -31,7 +31,7 @@ def os_choose(map: Dict[OperatingSystem, T], default: T) -> T:
 # Constants
 
 MAX_OS_PATH_LENGTH = os_choose({
-    OperatingSystem.WINDOWS: 255, # the added 1 is to include the delimiter into the calculation
+    OperatingSystem.WINDOWS: 255,
     OperatingSystem.DARWIN: 1024
 }, 4096)
 MAX_OS_FILENAME_LENGTH = os_choose({}, 255)
@@ -120,7 +120,7 @@ def count_directory_files(path: Path, with_extensions: List[str]) -> int:
     ])
 
 
-def clear_directory_files(path: Path, with_extensions: List[str], on_progress: Optional[Callable[[int], None]]):
+def clear_directory_files(path: Path, with_extensions: List[str], on_progress: Optional[Callable[[int], None]] = None):
     files_to_remove = [
         file for file in path.iterdir() 
         if file.is_file() and file.suffix in with_extensions
