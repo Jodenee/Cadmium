@@ -28,7 +28,7 @@ import asyncio
 import sys
 import pick
 
-from core.exceptions.impossible_download_path import ImpossibleDownloadPath
+# configure custom keybinds
 
 ARROW_KEY_UP = 450
 ARROW_KEY_DOWN = 456
@@ -36,7 +36,7 @@ ARROW_KEY_RIGHT = 261
 
 pick.KEYS_UP += (ARROW_KEY_UP, ord("w"), ord("8"))
 pick.KEYS_DOWN += (ARROW_KEY_DOWN, ord("s"), ord("2"))
-pick.KEYS_SELECT += (ord("d"), ARROW_KEY_RIGHT )
+pick.KEYS_SELECT += (ARROW_KEY_RIGHT, ord("d") )
 pick.KEYS_ENTER += (459, )
 
 from pathlib import Path
@@ -48,7 +48,7 @@ from sys import exit
 
 from core.enums import DownloadFormat, MediaType
 from core.enums.main_menu_option import MainMenuOption
-from core.exceptions import InvalidConfigurationError
+from core.exceptions import InvalidConfigurationError, ImpossibleDownloadPath
 from core.custom_types import Configuration, DownloadConfiguration
 from core.lib import ClearDirectoryDisplay
 from core.utilities.configuration import load_configuration, create_configuration_file
@@ -57,7 +57,7 @@ from core.utilities.download import Downloader
 from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg
 from core.utilities.parse import parse_youtube_link_type
 
-# Required + default files/directories
+# required + default files/directories
 
 if getattr(sys, "frozen", False):
     project_root_directory: Path = Path(sys.executable).parent.resolve() # If run as an exe
@@ -93,7 +93,7 @@ download_format_menu_options: Tuple[Option, ...] = (
     Option(DownloadFormat.CUSTOM.value, DownloadFormat.CUSTOM, "Downloads any streams of your choosing."),
     Option("back", "back", "Go back to the main menu without downloading anything.")
 )
-download_format_to_custom_download_configurations: Dict[DownloadFormat, DownloadConfiguration] = {
+download_format_to_custom_download_configuration: Dict[DownloadFormat, DownloadConfiguration] = {
     DownloadFormat.VIDEO: {
         "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_video_download_location_override"],
         "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["video_download_location_override"],
@@ -163,7 +163,7 @@ async def main() -> None:
             if download_format == "back":
                 continue
 
-            download_configuration = download_format_to_custom_download_configurations[download_format]
+            download_configuration = download_format_to_custom_download_configuration[download_format]
             download_directory: Path
 
             if not download_configuration["use_download_location_override"]:
