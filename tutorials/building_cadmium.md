@@ -24,7 +24,7 @@ Cadmium is written in python, so you will need to have a python interpreter on y
 
 * [Download Page](https://www.python.org/downloads/)
 * [Download Guide (Windows 10/11)](https://www.youtube.com/watch?v=3JHlILId9-k)
-* [Download Guide (Linux))](https://www.youtube.com/watch?v=3JHlILId9-k)
+* [Download Guide (Linux)](https://www.youtube.com/watch?v=3JHlILId9-k)
 
 ## Steps
 
