@@ -27,7 +27,8 @@ def get_cpu_architecture() -> CpuArchitecture:
         "x86_64": CpuArchitecture.x86_64,
         "AMD64": CpuArchitecture.x86_64,
         "aarch64": CpuArchitecture.ARM64,
-        "arm64": CpuArchitecture.ARM64
+        "arm64": CpuArchitecture.ARM64,
+        "ARM64": CpuArchitecture.ARM64
     }
 
     try:
