@@ -1,4 +1,3 @@
-
 from re import compile as compile_regex
 from ..enums import MediaType
 from ..exceptions import InvalidYoutubeURLError

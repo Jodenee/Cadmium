@@ -64,6 +64,9 @@ if getattr(sys, "frozen", False):
 else:
     project_root_directory: Path = Path(__file__).parent.resolve() # if run with python interpreter
 
+binaries_directory_path: Path = project_root_directory.joinpath("core").joinpath("bin")
+packaged_ffmpeg_binaries_directory_path: Path = binaries_directory_path.joinpath("ffmpeg")
+
 to_download_file: Path = project_root_directory.joinpath("to_download.txt")
 configuration_file_path: Path = project_root_directory.joinpath("configuration.json")
 temporary_files_directory_path: Path = project_root_directory.joinpath("temporary_files")
@@ -121,19 +124,20 @@ download_format_to_custom_download_configuration: Dict[DownloadFormat, DownloadC
     }
 }
 
-# find external dependencies
-
-ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration)
-
 # program
 
 async def main() -> None:
     if not configuration_file_path.exists(): 
         create_configuration_file(configuration_file_path)
 
+    # find external dependencies
+    ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration, packaged_ffmpeg_binaries_directory_path)
+
+    # ensure required files exist
     temporary_files_directory_path.mkdir(exist_ok=True)
     to_download_file.touch()
 
+    # initialise objects
     downloader: Downloader = Downloader(configuration, select_menu_indicator, temporary_files_directory_path, ffmpeg_executable_path)
 
     if not configuration["warning_configuration"]["silence_existing_temporary_files_warning"]:

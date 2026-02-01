@@ -1,11 +1,12 @@
 from os import environ, system as run_command
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, TypeVar
-from platform import system
+from platform import system, machine
 from re import sub as re_sub
 
 from ..custom_types.configuration import Configuration
 from ..enums.os import OperatingSystem
+from ..enums.cpu_architecture import CpuArchitecture
 from ..exceptions.invalid_configuration_error import InvalidConfigurationError
 
 # Generics
@@ -21,9 +22,32 @@ def get_os() -> OperatingSystem:
         return OperatingSystem.UNKNOWN
     
 
+def get_cpu_architecture() -> CpuArchitecture:  
+    raw_cpu_architecture_map: Dict[str, CpuArchitecture] = {
+        "x86_64": CpuArchitecture.x86_64,
+        "AMD64": CpuArchitecture.x86_64,
+        "aarch64": CpuArchitecture.ARM64,
+        "arm64": CpuArchitecture.ARM64
+    }
+
+    try:
+        raw_cpu_architecture = machine()
+
+        return raw_cpu_architecture_map[raw_cpu_architecture]
+    except KeyError:
+        return CpuArchitecture.UNSUPPORTED
+    
+
 def os_choose(map: Dict[OperatingSystem, T], default: T) -> T:
     try:
         return map[get_os()]
+    except KeyError:
+        return default
+    
+
+def cpu_architecture_choose(map: Dict[CpuArchitecture, T], default: T) -> T:
+    try:
+        return map[get_cpu_architecture()]
     except KeyError:
         return default
 
@@ -133,7 +157,10 @@ def clear_directory_files(path: Path, with_extensions: List[str], on_progress: O
             on_progress(file_number)
 
 
-def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
+def try_find_ffmpeg(configuration: Configuration, packaged_ffmpeg_binaries_directory_path: Path) -> Optional[Path]:
+    if not configuration["external_dependency_configuration"]["ffmpeg"]["use_ffmpeg"]:
+        return
+
     path_variable_separator = os_choose({
         OperatingSystem.LINUX: ":"
     }, ";")
@@ -142,22 +169,38 @@ def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
     }, "ffmpeg.exe")
     system_path_variables = environ.get("PATH", "").split(path_variable_separator)
 
-    if configuration["external_dependency_configuration"]["FFmpeg"]["try_find_ffmpeg_path_automatically"] and not configuration["external_dependency_configuration"]["FFmpeg"]["ffmpeg_executable_path"]:
-        for path in system_path_variables:
-            ffmpeg_path = Path(path) / ffmpeg_filename
-
-            if ffmpeg_path.exists():
-                return ffmpeg_path
-    else:
-        raw_ffmpeg_path = configuration["external_dependency_configuration"]["FFmpeg"]["ffmpeg_executable_path"]
+    if configuration["external_dependency_configuration"]["ffmpeg"]["custom_ffmpeg_executable_path"]:
+        raw_ffmpeg_path = configuration["external_dependency_configuration"]["ffmpeg"]["custom_ffmpeg_executable_path"]
 
         if raw_ffmpeg_path:
             ffmpeg_path = Path(raw_ffmpeg_path)
 
             if not ffmpeg_path.exists():
-                raise InvalidConfigurationError("ffmpeg_path", f"{raw_ffmpeg_path} does not exist")
+                raise InvalidConfigurationError("custom_ffmpeg_executable_path", f"{raw_ffmpeg_path} does not exist")
+            elif not ffmpeg_path.is_file():
+                raise InvalidConfigurationError("custom_ffmpeg_executable_path", f"{raw_ffmpeg_path} does not lead to a file")
             
             return ffmpeg_path
+    elif configuration["external_dependency_configuration"]["ffmpeg"]["use_path_ffmpeg"]:
+        for path in system_path_variables:
+            ffmpeg_path = Path(path) / ffmpeg_filename
+
+            if ffmpeg_path.exists():
+                return ffmpeg_path
+
+        raise InvalidConfigurationError("use_path_ffmpeg", "FFmpeg was not found inside PATH")
+    elif configuration["external_dependency_configuration"]["ffmpeg"]["use_packaged_ffmpeg"]:        
+        os = get_os()
+        cpu_architecture = get_cpu_architecture()
+        platform_ffmpeg_directory_name = f"{os.value.lower()}_{cpu_architecture.value.lower()}"
+        platform_ffmpeg_binary_path = packaged_ffmpeg_binaries_directory_path.joinpath(platform_ffmpeg_directory_name, "bin", ffmpeg_filename)
+
+        if os == OperatingSystem.UNKNOWN or cpu_architecture == CpuArchitecture.UNSUPPORTED:
+            raise InvalidConfigurationError("use_packaged_ffmpeg", "Could not determine necessary platform specs to load appropriate ffmpeg binary")
+        elif not platform_ffmpeg_binary_path.exists():
+            raise InvalidConfigurationError("use_packaged_ffmpeg", "Packaged ffmpeg binary does not exist, please do a fresh install of Cadmium to fix this issue")
+        
+        return platform_ffmpeg_binary_path
 
 
 def clear_console() -> None:

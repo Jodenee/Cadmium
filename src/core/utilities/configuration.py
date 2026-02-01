@@ -51,9 +51,11 @@ default_configuration: Configuration = {
         "custom_clear_directory_bar_colour": ""
     },
     "external_dependency_configuration": {
-        "FFmpeg": {
-            "try_find_ffmpeg_path_automatically": True,
-            "ffmpeg_executable_path": ""
+        "ffmpeg": {
+            "use_ffmpeg": True,
+            "use_packaged_ffmpeg": True,
+            "use_path_ffmpeg": False,
+            "custom_ffmpeg_executable_path": ""
         }
     }
 }
