@@ -55,11 +55,11 @@ To learn how to build Cadmium from it's source code please look at this [tutoria
 Huge thanks to all the open source libraries and projects that helped make Cadmium possible!
 
 * The maintainers of the [**python**](https://www.python.org/) programming language. [❤️ (Support the project here)](https://www.python.org/psf/donations/)
-* The maintainers of the [**ffmpeg**](https://github.com/aisk/pick) project. [❤️ (Support the project here)](https://ffmpeg.org/donations.html)
+* The maintainers of the [**ffmpeg**](https://ffmpeg.org/) project. [❤️ (Support the project here)](https://ffmpeg.org/donations.html)
 * The maintainers of the [**node**](https://github.com/nodejs/node) project. [❤️ (Support the project here)](https://github.com/sponsors/nodejs)
 * The maintainers of the [**pytubefix**](https://github.com/JuanBindez/pytubefix) python package. [❤️ (Support the project here)](https://github.com/sponsors/JuanBindez)
 * The maintainers of the [**python-ffmpeg**](https://github.com/jonghwanhyeon/python-ffmpeg) python package. [❤️ (Support the project here)](https://github.com/jonghwanhyeon/python-ffmpeg)
 * The maintainers of the [**tqdm**](https://github.com/tqdm/tqdm) python package. [❤️ (Support the project here)](https://github.com/sponsors/tqdm)
 * The maintainers of the [**pick**](https://github.com/aisk/pick) python package. [❤️ (Support the project here)](https://github.com/aisk/pick)
 * The maintainers of the [**pyinstaller**](https://github.com/pyinstaller/pyinstaller) python package. [❤️ (Support the project here)](https://github.com/sponsors/Legorooj)
-* Name inspired by the wonderful song [Cadmium Colors](https://www.youtube.com/watch?v=1U6qefKcOrg). [❤️ (Support the artist here)](https://jamiepaige.bandcamp.com/jamies-page)
+* Name inspired by the wonderful song [**Cadmium Colors**](https://www.youtube.com/watch?v=1U6qefKcOrg). [❤️ (Support the artist here)](https://jamiepaige.bandcamp.com/jamies-page)
