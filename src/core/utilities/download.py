@@ -7,18 +7,25 @@ from pytubefix.exceptions import MaxRetriesExceeded
 from ffmpeg.asyncio import FFmpeg
 from pathlib import Path
 
-from ..lib import MediaDownloadDisplay, MediaConversionDisplay
+from ..lib import ProgressBarFactory
 from ..custom_types import Configuration, VideoDownloadResult, PlaylistDownloadResult, FailedDownloadInformation, ChannelDownloadResult
-from ..enums import DownloadFormat, OperatingSystem
+from ..enums import DownloadFormat
 from ..exceptions import NoStreamsFoundError, VideoDownloadSkipped, DownloadCancelled, InvalidConfigurationError, ImpossibleDownloadPath
+from ..utilities.constants import SELECT_MENU_INDICATOR
 from .console import spaced_print
-from .os import clear_directory_files, os_choose, safe_full_filename, safe_os_name, MAX_OS_FILENAME_LENGTH, MAX_OS_PATH_LENGTH
+from .os import safe_full_filename, safe_os_name, MAX_OS_FILENAME_LENGTH, MAX_OS_PATH_LENGTH
 from .pytubefix_extensions import stream_default_filename, stream_repr
 
 class Downloader:
-    def __init__(self, configuration: Configuration, select_menu_indicator: str, temporary_files_directory_path: Path, ffmpeg_executable_path: Optional[Path] = None):
+    def __init__(
+            self, 
+            configuration: Configuration, 
+            progress_bar_factory: ProgressBarFactory,
+            temporary_files_directory_path: Path, 
+            ffmpeg_executable_path: Optional[Path] = None
+        ):
         self.configuration = configuration
-        self.select_menu_indicator = select_menu_indicator
+        self.progress_bar_factory = progress_bar_factory
         self.temporary_files_directory_path = temporary_files_directory_path
         self.ffmpeg_executable_path = ffmpeg_executable_path
 
@@ -177,12 +184,11 @@ class Downloader:
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
             spaced_print(f"Chosen stream info: {stream_repr(stream)}")
 
-        download_display = MediaDownloadDisplay(
+        download_bar = self.progress_bar_factory.download(
             f"Downloading ({await youtube_video.title()})", 
-            stream.filesize, 
-            self.configuration
+            stream.filesize,
+            youtube_video
         )
-        youtube_video.register_on_progress_callback(download_display.show_progress_callback)
 
         if not should_convert:
             download_path: Optional[str] = stream.download(
@@ -190,7 +196,7 @@ class Downloader:
                 skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
                 filename=safe_filename
             )
-            download_display.progress_bar.close()
+            download_bar.close()
 
             if (download_path == None):
                 raise DownloadCancelled(await youtube_video.title())
@@ -212,7 +218,7 @@ class Downloader:
                 skip_existing=False,
                 filename=temporary_file_full_filename
             )
-            download_display.progress_bar.close()
+            download_bar.close()
 
             if temporary_file_download_path == None:
                 raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
@@ -227,24 +233,20 @@ class Downloader:
                 .output(converted_file_path)
             )
 
-            conversion_display = MediaConversionDisplay(
+            conversion_bar = self.progress_bar_factory.conversion(
                 f"Converting ({await youtube_video.title()}) to ({video_custom_file_extension})",
                 stream, 
-                ffmpeg, 
-                self.configuration
+                ffmpeg
             )
-            ffmpeg.on("progress", conversion_display.on_progress)
             
             try:
                 await ffmpeg.execute()
-
-                conversion_display.progress_bar.n = conversion_display.progress_bar.total
-                conversion_display.progress_bar.refresh()
+                conversion_bar.show_max()
             except:
                 ffmpeg.terminate()
                 raise
 
-            conversion_display.progress_bar.close()
+            conversion_bar.close()
             spaced_print("Conversion was successful!")
 
             return converted_file_path    
@@ -284,12 +286,11 @@ class Downloader:
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
             spaced_print(f"Chosen stream info: {stream_repr(stream)}")
 
-        download_display = MediaDownloadDisplay(
+        download_bar = self.progress_bar_factory.download(
             f"Downloading ({await youtube_video.title()})", 
-            stream.filesize, 
-            self.configuration
+            stream.filesize,
+            youtube_video
         )
-        youtube_video.register_on_progress_callback(download_display.show_progress_callback)
 
         if not should_convert:
             download_file_path = stream.download(
@@ -297,7 +298,7 @@ class Downloader:
                 skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
                 filename=safe_filename
             )
-            download_display.progress_bar.close()
+            download_bar.close()
 
             if (download_file_path == None):
                 raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
@@ -318,7 +319,7 @@ class Downloader:
                 skip_existing=False,
                 filename=temporary_file_full_filename
             )
-            download_display.progress_bar.close()
+            download_bar.close()
 
             if temporary_file_download_path == None:
                 raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
@@ -332,24 +333,20 @@ class Downloader:
                 .output(safe_full_video_file_path)
             )
 
-            conversion_display = MediaConversionDisplay(
+            conversion_bar = self.progress_bar_factory.conversion(
                 f"Converting ({await youtube_video.title()}) to ({video_only_custom_file_extension})",
                 stream, 
-                ffmpeg, 
-                self.configuration
+                ffmpeg
             )
-            ffmpeg.on("progress", conversion_display.on_progress)
             
             try:
                 await ffmpeg.execute()
-
-                conversion_display.progress_bar.n = conversion_display.progress_bar.total
-                conversion_display.progress_bar.refresh()
+                conversion_bar.show_max()
             except:
                 ffmpeg.terminate()
                 raise
 
-            conversion_display.progress_bar.close()
+            conversion_bar.close()
             spaced_print("Conversion was successful!")
 
             return safe_full_video_file_path
@@ -389,12 +386,11 @@ class Downloader:
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
             spaced_print(f"Chosen stream info: {stream_repr(stream)}")
 
-        download_display = MediaDownloadDisplay(
+        download_bar = self.progress_bar_factory.download(
             f"Downloading ({await youtube_video.title()})", 
-            stream.filesize, 
-            self.configuration
+            stream.filesize,
+            youtube_video
         )
-        youtube_video.register_on_progress_callback(download_display.show_progress_callback)
 
         if not self.configuration["download_behavior_configuration"]["convert_audio_only_downloads"]:
             download_file_location: Optional[str] = stream.download(
@@ -402,7 +398,7 @@ class Downloader:
                 skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
                 filename=safe_filename
             )
-            download_display.progress_bar.close()
+            download_bar.close()
 
             if download_file_location == None:
                 raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
@@ -421,7 +417,7 @@ class Downloader:
                     filename_prefix="Audio-"
                 )
             )
-            download_display.progress_bar.close()
+            download_bar.close()
 
             if (download_file_location == None):
                 raise NoStreamsFoundError(await youtube_video.title())
@@ -435,24 +431,20 @@ class Downloader:
                 .output(safe_full_audio_file_path)
             )          
 
-            conversion_display = MediaConversionDisplay(
+            conversion_bar = self.progress_bar_factory.conversion(
                 f"Converting ({await youtube_video.title()}) to ({video_custom_file_extension})",
                 stream, 
-                ffmpeg, 
-                self.configuration
+                ffmpeg
             )
-            ffmpeg.on("progress", conversion_display.on_progress)
             
             try:
                 await ffmpeg.execute()
-
-                conversion_display.progress_bar.n = conversion_display.progress_bar.total
-                conversion_display.progress_bar.refresh()
+                conversion_bar.show_max()
             except:
                 ffmpeg.terminate()
                 raise
 
-            conversion_display.progress_bar.close()
+            conversion_bar.close()
             print("\nConversion was successful!", end="\n")
             
             return safe_full_audio_file_path   
@@ -536,12 +528,11 @@ class Downloader:
                 spaced_print(f"Chosen video stream info: {stream_repr(video_stream)}")
                 spaced_print(f"Chosen audio stream info: {stream_repr(audio_stream)}")
 
-            video_download_display = MediaDownloadDisplay(
+            video_download_bar = self.progress_bar_factory.download(
                 f"Downloading ({await youtube_video.title()})", 
-                video_stream.filesize, 
-                self.configuration
+                video_stream.filesize,
+                youtube_video
             )
-            youtube_video.register_on_progress_callback(video_download_display.show_progress_callback)
 
             video_only_safe_filename = safe_full_filename(
                 full_filename=await stream_default_filename(video_stream), 
@@ -558,14 +549,13 @@ class Downloader:
                 skip_existing=False,
                 filename=video_only_safe_filename
             )
-            video_download_display.progress_bar.close()
+            video_download_bar.close()
 
-            audio_download_display = MediaDownloadDisplay(
+            audio_download_bar = self.progress_bar_factory.download(
                 f"Downloading ({await youtube_video.title()})", 
-                audio_stream.filesize, 
-                self.configuration
+                audio_stream.filesize,
+                youtube_video
             )
-            youtube_video.register_on_progress_callback(audio_download_display.show_progress_callback)
 
             audio_only_safe_filename = safe_full_filename(
                 full_filename=await stream_default_filename(audio_stream),
@@ -582,7 +572,7 @@ class Downloader:
                 skip_existing=False,
                 filename=audio_only_safe_filename
             )
-            audio_download_display.progress_bar.close()
+            audio_download_bar.close()
 
             if (video_only_file_path == None or audio_only_file_path == None):
                 raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
@@ -595,24 +585,20 @@ class Downloader:
                 .output(merged_file_path)
             )
 
-            conversion_display = MediaConversionDisplay(
+            conversion_bar = self.progress_bar_factory.conversion(
                 f"Merging ({await youtube_video.title()})",
                 video_stream, 
-                ffmpeg, 
-                self.configuration
+                ffmpeg
             )
-            ffmpeg.on("progress", conversion_display.on_progress)
             
             try:
                 await ffmpeg.execute()
-
-                conversion_display.progress_bar.n = conversion_display.progress_bar.total
-                conversion_display.progress_bar.refresh()
+                conversion_bar.show_max()
             except:
                 ffmpeg.terminate()
                 raise
 
-            conversion_display.progress_bar.close()
+            conversion_bar.close()
             spaced_print("Merge Successful!")
 
             return merged_file_path
@@ -643,7 +629,7 @@ class Downloader:
         stream_pick_menu = pick(
             options, 
             "Pick the streams you wish to download. [Spacebar] to select/deselect and [Enter] to download.", 
-            indicator=self.select_menu_indicator, 
+            indicator=SELECT_MENU_INDICATOR, 
             multiselect=True,
             min_selection_count=1
         )
@@ -679,29 +665,27 @@ class Downloader:
                     raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
                 if not should_convert:
-                    download_display = MediaDownloadDisplay(
+                    download_bar = self.progress_bar_factory.download(
                         f"Downloading Stream {stream.itag} ({await youtube_video.title()})", 
-                        stream.filesize, 
-                        self.configuration
+                        stream.filesize,
+                        youtube_video
                     )
-                    youtube_video.register_on_progress_callback(download_display.show_progress_callback)
 
                     download_path: Optional[str] = stream.download(
                         output_path=str(true_download_directory), 
                         skip_existing=self.configuration["download_behavior_configuration"]["skip_existing_files"],
                         filename=safe_filename
                     )
-                    download_display.progress_bar.close()
+                    download_bar.close()
 
                     if (download_path == None):
                         raise DownloadCancelled(await youtube_video.title())
                 else:        
-                    download_display = MediaDownloadDisplay(
+                    download_bar = self.progress_bar_factory.download(
                         f"Downloading Stream {stream.itag} ({await youtube_video.title()})", 
-                        stream.filesize, 
-                        self.configuration
+                        stream.filesize,
+                        youtube_video
                     )
-                    youtube_video.register_on_progress_callback(download_display.show_progress_callback)
 
                     temporary_file_full_filename = safe_full_filename(
                         full_filename=await stream_default_filename(stream),
@@ -717,7 +701,7 @@ class Downloader:
                         skip_existing=False,
                         filename=temporary_file_full_filename
                     )
-                    download_display.progress_bar.close()
+                    download_bar.close()
 
                     if (temporary_download_path == None):
                         raise DownloadCancelled(await youtube_video.title())
@@ -731,24 +715,20 @@ class Downloader:
                         .output(safe_full_file_path)
                     )
 
-                    conversion_display = MediaConversionDisplay(
+                    conversion_bar = self.progress_bar_factory.conversion(
                         f"Converting ({await youtube_video.title()})",
                         stream, 
-                        ffmpeg, 
-                        self.configuration
+                        ffmpeg
                     )
-                    ffmpeg.on("progress", conversion_display.on_progress)
                     
                     try:
                         await ffmpeg.execute()
-
-                        conversion_display.progress_bar.n = conversion_display.progress_bar.total
-                        conversion_display.progress_bar.refresh()
+                        conversion_bar.show_max()
                     except:
                         ffmpeg.terminate()
                         raise
 
-                    conversion_display.progress_bar.close()
+                    conversion_bar.close()
                     spaced_print("Conversion Successful!")
         except ImpossibleDownloadPath:
             # Remove empty folder if media fails to download

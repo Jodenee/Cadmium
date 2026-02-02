@@ -50,12 +50,13 @@ from core.enums import DownloadFormat, MediaType
 from core.enums.main_menu_option import MainMenuOption
 from core.exceptions import InvalidConfigurationError, ImpossibleDownloadPath
 from core.custom_types import Configuration, DownloadConfiguration
-from core.lib import ClearDirectoryDisplay
+from core.lib import ClearDirectoryProgressBar, ProgressBarFactory
 from core.utilities.configuration import load_configuration, create_configuration_file
 from core.utilities.console import print_failed_downloads, spaced_print
 from core.utilities.download import Downloader
 from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg
 from core.utilities.parse import parse_youtube_link_type
+from core.utilities.constants import SELECT_MENU_INDICATOR, TEMPORARY_FILE_EXTENSIONS
 
 # required + default files/directories
 
@@ -81,8 +82,7 @@ default_custom_download_directory_path: Path = downloads_directory_path.joinpath
 # constant values
 
 configuration: Configuration = load_configuration(configuration_file_path)
-temporary_file_extensions = [ ".webm", ".m4a", ".mp4", ".mp3" ]
-select_menu_indicator = ">"
+progress_bar_factory = ProgressBarFactory(configuration)
 main_menu_options: Tuple[Option, ...] = (
     Option(MainMenuOption.DOWNLOAD.value, MainMenuOption.DOWNLOAD, "Download videos."),
     Option(f"{MainMenuOption.EDIT_CONFIGURATION.value} (Coming soon)", MainMenuOption.EDIT_CONFIGURATION, "Edit Cadmium's configuration.", enabled=False),
@@ -138,30 +138,30 @@ async def main() -> None:
     to_download_file.touch()
 
     # initialise objects
-    downloader: Downloader = Downloader(configuration, select_menu_indicator, temporary_files_directory_path, ffmpeg_executable_path)
+    downloader: Downloader = Downloader(configuration, progress_bar_factory, temporary_files_directory_path, ffmpeg_executable_path)
 
     if not configuration["warning_configuration"]["silence_existing_temporary_files_warning"]:
-        number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
+        number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, TEMPORARY_FILE_EXTENSIONS)
 
         if number_of_existing_temp_files > 0: 
             pick(
                 [ "Continue" ], 
                 f"WARNING: You have {number_of_existing_temp_files} temporary file(s) that can be removed! ({str(temporary_files_directory_path)})", 
-                indicator=select_menu_indicator
+                indicator=SELECT_MENU_INDICATOR
             )
 
     while True:
         main_menu_option: MainMenuOption = pick(
             main_menu_options, 
             f"Cadmium - v{__version__} (https://github.com/Jodenee/Cadmium)", 
-            indicator=select_menu_indicator
+            indicator=SELECT_MENU_INDICATOR
         )[0].value # type: ignore
 
         if main_menu_option == MainMenuOption.DOWNLOAD:
             download_format: DownloadFormat = pick(
                 download_format_menu_options, 
                 "Which format should the videos be downloaded as", 
-                indicator=select_menu_indicator
+                indicator=SELECT_MENU_INDICATOR
             )[0].value # type: ignore
 
             if download_format == "back":
@@ -197,7 +197,7 @@ async def main() -> None:
                 pick(
                     [ "return to main menu" ], 
                     f"No YouTube urls found in ({str(to_download_file)}).",
-                    select_menu_indicator
+                    SELECT_MENU_INDICATOR
                 )
                 continue
 
@@ -238,17 +238,16 @@ async def main() -> None:
             clear_console()
         elif main_menu_option == MainMenuOption.EXIT:
             if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
-                total_files_to_remove = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
+                total_files_to_remove = count_directory_files(temporary_files_directory_path, TEMPORARY_FILE_EXTENSIONS)
 
                 if total_files_to_remove > 0:
-                    clear_directory_display = ClearDirectoryDisplay(
+                    clear_directory_progress_bar = progress_bar_factory.clear_directory(
                         f"Clearing ({temporary_files_directory_path})", 
-                        total_files_to_remove, 
-                        configuration
+                        total_files_to_remove
                     )
 
-                    clear_directory_files(temporary_files_directory_path, temporary_file_extensions, clear_directory_display.on_progress)
-                    clear_directory_display.progress_bar.close()
+                    clear_directory_files(temporary_files_directory_path, TEMPORARY_FILE_EXTENSIONS, clear_directory_progress_bar.on_progress)
+                    clear_directory_progress_bar.close()
             
             break
 
