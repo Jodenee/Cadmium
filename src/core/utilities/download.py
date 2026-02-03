@@ -7,6 +7,8 @@ from pytubefix.exceptions import MaxRetriesExceeded
 from ffmpeg.asyncio import FFmpeg
 from pathlib import Path
 
+from core.utilities.file_conversion import convert_file
+
 from ..lib import ProgressBarFactory
 from ..custom_types import Configuration, VideoDownloadResult, PlaylistDownloadResult, FailedDownloadInformation, ChannelDownloadResult
 from ..enums import DownloadFormat
@@ -235,8 +237,7 @@ class Downloader:
 
             conversion_bar = self.progress_bar_factory.conversion(
                 f"Converting ({await youtube_video.title()}) to ({video_custom_file_extension})",
-                stream, 
-                ffmpeg
+                int(stream.durationMs)
             )
             
             try:
@@ -306,6 +307,7 @@ class Downloader:
             return Path(download_file_path)
         else:
             if not self.ffmpeg_executable_path:
+                download_bar.close()
                 raise InvalidConfigurationError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
 
             temporary_file_full_filename = safe_full_filename(
@@ -326,25 +328,18 @@ class Downloader:
                 
             download_file_path = Path(temporary_file_download_path)
 
-            ffmpeg = (
-                FFmpeg(str(self.ffmpeg_executable_path))
-                .option("y")
-                .input(download_file_path)
-                .output(safe_full_video_file_path)
-            )
-
             conversion_bar = self.progress_bar_factory.conversion(
                 f"Converting ({await youtube_video.title()}) to ({video_only_custom_file_extension})",
-                stream, 
-                ffmpeg
+                int(stream.durationMs)
             )
-            
-            try:
-                await ffmpeg.execute()
-                conversion_bar.show_max()
-            except:
-                ffmpeg.terminate()
-                raise
+
+            await convert_file(
+                self.ffmpeg_executable_path, 
+                [ download_file_path ], 
+                [ safe_full_video_file_path ],
+                [ "y" ],
+                conversion_bar.on_progress
+            )
 
             conversion_bar.close()
             spaced_print("Conversion was successful!")
@@ -422,27 +417,20 @@ class Downloader:
             if (download_file_location == None):
                 raise NoStreamsFoundError(await youtube_video.title())
 
-            download_file_path: Path = Path(download_file_location)
-            
-            ffmpeg = (
-                FFmpeg(str(self.ffmpeg_executable_path))
-                .option("y")
-                .input(download_file_path)
-                .output(safe_full_audio_file_path)
-            )          
+            download_file_path: Path = Path(download_file_location)      
 
             conversion_bar = self.progress_bar_factory.conversion(
                 f"Converting ({await youtube_video.title()}) to ({video_custom_file_extension})",
-                stream, 
-                ffmpeg
+                int(stream.durationMs)
             )
             
-            try:
-                await ffmpeg.execute()
-                conversion_bar.show_max()
-            except:
-                ffmpeg.terminate()
-                raise
+            await convert_file(
+                self.ffmpeg_executable_path, 
+                [ download_file_path ], 
+                [ safe_full_audio_file_path ],
+                [ "y" ],
+                conversion_bar.on_progress
+            )
 
             conversion_bar.close()
             print("\nConversion was successful!", end="\n")
@@ -577,26 +565,18 @@ class Downloader:
             if (video_only_file_path == None or audio_only_file_path == None):
                 raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
-            ffmpeg = (
-                FFmpeg(str(self.ffmpeg_executable_path))
-                .option("y")
-                .input(video_only_file_path)
-                .input(audio_only_file_path)
-                .output(merged_file_path)
-            )
-
             conversion_bar = self.progress_bar_factory.conversion(
                 f"Merging ({await youtube_video.title()})",
-                video_stream, 
-                ffmpeg
+                int(video_stream.durationMs)
             )
             
-            try:
-                await ffmpeg.execute()
-                conversion_bar.show_max()
-            except:
-                ffmpeg.terminate()
-                raise
+            await convert_file(
+                self.ffmpeg_executable_path, 
+                [ video_only_file_path, audio_only_file_path ], 
+                [ merged_file_path ],
+                [ "y" ],
+                conversion_bar.on_progress
+            )
 
             conversion_bar.close()
             spaced_print("Merge Successful!")
@@ -681,6 +661,9 @@ class Downloader:
                     if (download_path == None):
                         raise DownloadCancelled(await youtube_video.title())
                 else:        
+                    if not self.ffmpeg_executable_path:
+                        raise InvalidConfigurationError("FFmpeg", "cannot convert videos without FFmpeg, please enable \"try_find_ffmpeg_path_automatically\" or manually set the path to the executable using the \"ffmpeg_executable_path\" setting")
+                    
                     download_bar = self.progress_bar_factory.download(
                         f"Downloading Stream {stream.itag} ({await youtube_video.title()})", 
                         stream.filesize,
@@ -705,28 +688,19 @@ class Downloader:
 
                     if (temporary_download_path == None):
                         raise DownloadCancelled(await youtube_video.title())
-                    
-                    temporary_file_download_path: Path = Path(temporary_download_path)
-                    
-                    ffmpeg = (
-                        FFmpeg(str(self.ffmpeg_executable_path))
-                        .option("y")
-                        .input(temporary_file_download_path)
-                        .output(safe_full_file_path)
-                    )
 
                     conversion_bar = self.progress_bar_factory.conversion(
                         f"Converting ({await youtube_video.title()})",
-                        stream, 
-                        ffmpeg
+                        int(stream.durationMs)
                     )
                     
-                    try:
-                        await ffmpeg.execute()
-                        conversion_bar.show_max()
-                    except:
-                        ffmpeg.terminate()
-                        raise
+                    await convert_file(
+                        self.ffmpeg_executable_path, 
+                        [ temporary_download_path ], 
+                        [ safe_full_file_path ],
+                        [ "y" ],
+                        conversion_bar.on_progress
+                    )
 
                     conversion_bar.close()
                     spaced_print("Conversion Successful!")

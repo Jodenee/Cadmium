@@ -14,10 +14,9 @@ class ProgressBarFactory:
     def conversion(
         self,
         description: str,
-        stream: Stream,
-        ffmpeg: FFmpeg,
+        stream_duration_in_ms: int,
     ) -> ConversionProgressBar:
-        return ConversionProgressBar(description, stream, ffmpeg, self.configuration)
+        return ConversionProgressBar(description, stream_duration_in_ms, self.configuration)
     
     def download(self, description: str, stream_size_in_bytes: int, youtube_video: AsyncYouTube) -> DownloadProgressBar:
         return DownloadProgressBar(description, stream_size_in_bytes, youtube_video, self.configuration)
