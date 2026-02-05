@@ -242,7 +242,6 @@ class Downloader:
             
             try:
                 await ffmpeg.execute()
-                conversion_bar.show_max()
             except:
                 ffmpeg.terminate()
                 raise

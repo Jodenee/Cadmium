@@ -25,9 +25,5 @@ class ConversionProgressBar:
         self._progress_bar.n = min(round(progress.time.total_seconds(), 2), self._progress_bar.total)
         self._progress_bar.refresh()
 
-    def show_max(self):
-        self._progress_bar.n = self._progress_bar.total
-        self._progress_bar.refresh()
-
     def close(self):
         self._progress_bar.close()
