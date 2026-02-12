@@ -50,10 +50,9 @@ from core.enums import DownloadFormat, MediaType
 from core.enums.main_menu_option import MainMenuOption
 from core.exceptions import InvalidConfigurationError, ImpossibleDownloadPath
 from core.custom_types import Configuration, DownloadConfiguration
-from core.lib import ClearDirectoryProgressBar, ProgressBarFactory
+from core.lib import Downloader, ProgressBarFactory
 from core.utilities.configuration import load_configuration, create_configuration_file
 from core.utilities.console import print_failed_downloads, spaced_print
-from core.utilities.download import Downloader
 from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg
 from core.utilities.parse import parse_youtube_link_type
 from core.utilities.constants import SELECT_MENU_INDICATOR, TEMPORARY_FILE_EXTENSIONS
@@ -65,7 +64,7 @@ if getattr(sys, "frozen", False):
 else:
     project_root_directory: Path = Path(__file__).parent.resolve() # if run with python interpreter
 
-binaries_directory_path: Path = project_root_directory.joinpath("core").joinpath("bin")
+binaries_directory_path: Path = project_root_directory.joinpath("core", "bin")
 packaged_ffmpeg_binaries_directory_path: Path = binaries_directory_path.joinpath("ffmpeg")
 
 to_download_file: Path = project_root_directory.joinpath("to_download.txt")
@@ -124,7 +123,7 @@ download_format_to_custom_download_configuration: Dict[DownloadFormat, DownloadC
     }
 }
 
-# program
+# Program
 
 async def main() -> None:
     if not configuration_file_path.exists(): 
@@ -138,7 +137,12 @@ async def main() -> None:
     to_download_file.touch()
 
     # initialise objects
-    downloader: Downloader = Downloader(configuration, progress_bar_factory, temporary_files_directory_path, ffmpeg_executable_path)
+    downloader: Downloader = Downloader(
+        configuration, 
+        progress_bar_factory, 
+        temporary_files_directory_path, 
+        ffmpeg_executable_path
+    )
 
     if not configuration["warning_configuration"]["silence_existing_temporary_files_warning"]:
         number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, TEMPORARY_FILE_EXTENSIONS)
@@ -201,10 +205,11 @@ async def main() -> None:
                 )
                 continue
 
-            for index, url in enumerate(urls):
-                mediaType = parse_youtube_link_type(url)
+            print("Downloading videos...")
 
-                spaced_print(f"Now downloading {mediaType.value} ({url})") if index > 0 else print(f"Now downloading {mediaType.value} ({url})")
+            for url in urls:
+                mediaType = parse_youtube_link_type(url)
+                spaced_print(f"Now downloading {mediaType.value} ({url})")  
 
                 if mediaType == MediaType.VIDEO:
                     result = await downloader.download_video(url, download_format, download_directory)
@@ -247,6 +252,7 @@ async def main() -> None:
                     )
 
                     clear_directory_files(temporary_files_directory_path, TEMPORARY_FILE_EXTENSIONS, clear_directory_progress_bar.on_progress)
+
                     clear_directory_progress_bar.close()
             
             break

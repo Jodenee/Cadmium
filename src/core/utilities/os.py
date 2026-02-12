@@ -1,19 +1,19 @@
 from os import environ, system as run_command
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, TypeVar
+from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
 from platform import system, machine
 from re import sub as re_sub
+
+from core.exceptions.impossible_download_path import ImpossibleDownloadPath
+from core.utilities.helpers import choose
 
 from ..custom_types.configuration import Configuration
 from ..enums.os import OperatingSystem
 from ..enums.cpu_architecture import CpuArchitecture
 from ..exceptions.invalid_configuration_error import InvalidConfigurationError
 
-# Generics
 
-T = TypeVar('T')
-
-# functions
+# Platform information functions
 
 def get_os() -> OperatingSystem:  
     try:
@@ -37,38 +37,25 @@ def get_cpu_architecture() -> CpuArchitecture:
         return raw_cpu_architecture_map[raw_cpu_architecture]
     except KeyError:
         return CpuArchitecture.UNSUPPORTED
-    
-
-def os_choose(map: Dict[OperatingSystem, T], default: T) -> T:
-    try:
-        return map[get_os()]
-    except KeyError:
-        return default
-    
-
-def cpu_architecture_choose(map: Dict[CpuArchitecture, T], default: T) -> T:
-    try:
-        return map[get_cpu_architecture()]
-    except KeyError:
-        return default
 
 
-# Constants
+# OS constants
 
-MAX_OS_PATH_LENGTH = os_choose({
+MAX_OS_PATH_LENGTH = choose(get_os(), {
     OperatingSystem.WINDOWS: 255,
     OperatingSystem.DARWIN: 1024
 }, 4096)
-MAX_OS_FILENAME_LENGTH = os_choose({}, 255)
+MAX_OS_FILENAME_LENGTH = choose(get_os(), {}, 255)
 
+# OS action functions
 
 def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
-    replace_regex: str = os_choose({
+    replace_regex: str = choose(get_os(), {
         OperatingSystem.WINDOWS: r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$",
         OperatingSystem.LINUX: r"[(\\0)\/.\-*?|&;<>#!]|^\.+|\.+$",
         OperatingSystem.DARWIN: r"[\/:*?\"<>|]",
     }, r"")
-    reserved_filenames: Tuple[str, ...] = os_choose({
+    reserved_filenames: Tuple[str, ...] = choose(get_os(), {
         OperatingSystem.WINDOWS: (
             "CON", 
             "PRN", 
@@ -104,7 +91,7 @@ def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
             ".AppleDouble"
         ),
     }, ())
-    safe_name: str = re_sub(replace_regex, "", name).strip()
+    safe_name: str = re_sub(replace_regex, "", name)
     upper_case_safe_name: str = safe_name.upper()
 
     for reserved_file_name in reserved_filenames:
@@ -138,6 +125,48 @@ def safe_full_filename(
     return f"{filename_prefix or ''}{safe_filename}.{file_extension}"
 
 
+def safe_join_directory(
+    create_in: Path, 
+    directory_name: str, 
+    fallback_directory_name: str
+) -> Path:
+    safe_name = safe_os_name(
+        directory_name,
+        fallback_directory_name
+    )
+    path = create_in / safe_name
+
+    if len(str(path)) > MAX_OS_PATH_LENGTH:
+        raise ImpossibleDownloadPath(path)
+
+    return path
+
+
+def resolve_safe_file_path(
+    directory: Path,
+    filename: str, 
+    fallback_filename: str, 
+    filename_prefix: Optional[str] = None, 
+    extension_override: Optional[str] = None
+) -> Path:
+    safe_filename = safe_full_filename(
+        filename,
+        fallback_filename,
+        filename_prefix,
+        calculate_max_filename_length(directory),
+        extension_override
+    )
+
+    if safe_filename == "":
+        raise ImpossibleDownloadPath(directory)
+
+    return directory / safe_filename
+
+
+def calculate_max_filename_length(download_directory: Union[Path, str]):
+    return min(MAX_OS_PATH_LENGTH - (len(str(download_directory)) + 1), MAX_OS_FILENAME_LENGTH)
+
+
 def count_directory_files(path: Path, with_extensions: List[str]) -> int:
     return len([
         file for file in path.iterdir() 
@@ -162,10 +191,10 @@ def try_find_ffmpeg(configuration: Configuration, packaged_ffmpeg_binaries_direc
     if not configuration["external_dependency_configuration"]["ffmpeg"]["use_ffmpeg"]:
         return
 
-    path_variable_separator = os_choose({
+    path_variable_separator = choose(get_os(), {
         OperatingSystem.LINUX: ":"
     }, ";")
-    ffmpeg_filename = os_choose({
+    ffmpeg_filename = choose(get_os(), {
         OperatingSystem.LINUX: "ffmpeg"
     }, "ffmpeg.exe")
     system_path_variables = environ.get("PATH", "").split(path_variable_separator)
@@ -205,6 +234,6 @@ def try_find_ffmpeg(configuration: Configuration, packaged_ffmpeg_binaries_direc
 
 
 def clear_console() -> None:
-    run_command(os_choose({
+    run_command(choose(get_os(), {
         OperatingSystem.WINDOWS: "cls"
     }, "clear"))

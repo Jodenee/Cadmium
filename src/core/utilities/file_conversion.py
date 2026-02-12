@@ -7,8 +7,8 @@ async def convert_file(
     ffmpeg_executable_path: Union[str, Path], 
     input_file_paths: List[str | Path], 
     output_file_paths: List[str | Path],
-    options: Optional[List[str]],
-    progress_callback: Callable[[Progress], None]
+    options: List[str],
+    progress_callback: Optional[Callable[[Progress], None]] = None
 ) -> None:
     ffmpeg = FFmpeg(str(ffmpeg_executable_path))
 
@@ -18,11 +18,11 @@ async def convert_file(
     for output_file in output_file_paths:
         ffmpeg.output(output_file)
     
-    if options:
-        for option in options:
-            ffmpeg.option(option)
+    for option in options:
+        ffmpeg.option(option)
 
-    ffmpeg.on("progress", progress_callback)
+    if progress_callback:
+        ffmpeg.on("progress", progress_callback)
 
     try:
         await ffmpeg.execute()
