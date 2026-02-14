@@ -4,12 +4,23 @@ from typing import Optional
 from core.exceptions.invalid_configuration_error import InvalidConfigurationError
 
 def ensure_can_use_ffmpeg(
-    should_convert: bool, 
     ffmpeg_executable_path: Optional[Path], 
     file_extension: Optional[str], 
     file_extension_configuration_name: str
-) -> None:  
-    if not should_convert: return
+) -> None:
+    """Ensures that ffmpeg can be used by checking if all the required conditions are met.
+
+    Args:
+        ffmpeg_executable_path: An optional Path to the ffmpeg executable to be used.
+        file_extension: The file extension to be converted to.
+        file_extension_configuration_name: the file extension configuration name
+
+    Raises:
+        InvalidConfigurationError: 
+            Raised if `ffmpeg_executable_path is None` 
+            or `file_extension is None` 
+            or the `length of file_extension is 0`.
+    """
 
     if ffmpeg_executable_path == None:
         raise InvalidConfigurationError(

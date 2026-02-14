@@ -3,6 +3,7 @@ from typing import Callable, List, Optional, Tuple, Union
 from ffmpeg.asyncio import FFmpeg
 from ffmpeg import Progress
 
+
 async def convert_file(
     ffmpeg_executable_path: Union[str, Path], 
     input_file_paths: List[str | Path], 
@@ -27,5 +28,7 @@ async def convert_file(
     try:
         await ffmpeg.execute()
     except:
-        ffmpeg.terminate()
+        if ffmpeg._executed:
+            ffmpeg.terminate()
+            
         raise

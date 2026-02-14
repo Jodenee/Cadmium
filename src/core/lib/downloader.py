@@ -241,6 +241,12 @@ class Downloader:
 
             return video_download_location
         
+        ensure_can_use_ffmpeg(
+            self.ffmpeg_executable_path, 
+            custom_file_extension, 
+            "convert_video_downloads_to"
+        )
+        
         converted_file_path: Path = resolve_safe_file_path(
             download_directory, 
             stream.default_filename, 
@@ -302,6 +308,12 @@ class Downloader:
             )
 
             return video_download_location
+        
+        ensure_can_use_ffmpeg(
+            self.ffmpeg_executable_path, 
+            custom_file_extension, 
+            "convert_video_only_downloads_to"
+        )
 
         converted_file_path: Path = resolve_safe_file_path(
             download_directory, 
@@ -364,6 +376,12 @@ class Downloader:
             )
 
             return video_download_location
+
+        ensure_can_use_ffmpeg(
+            self.ffmpeg_executable_path, 
+            custom_file_extension, 
+            "convert_audio_only_downloads_to"
+        )
 
         converted_file_path: Path = resolve_safe_file_path(
             download_directory, 
@@ -446,6 +464,12 @@ class Downloader:
 
             if video_stream == None or audio_stream == None:
                 raise NoStreamsFoundError(await youtube_video.title())
+            
+            ensure_can_use_ffmpeg(
+                self.ffmpeg_executable_path, 
+                custom_file_extension, 
+                "best_of_both_merged_file_format"
+            )
 
             converted_file_path: Path = resolve_safe_file_path(
                 download_directory, 
@@ -503,13 +527,6 @@ class Downloader:
         should_convert = self.configuration["download_behavior_configuration"]["convert_custom_downloads"] 
         custom_file_extension = self.configuration["download_behavior_configuration"]["convert_custom_downloads_to"]
 
-        ensure_can_use_ffmpeg(
-            should_convert, 
-            self.ffmpeg_executable_path, 
-            custom_file_extension, 
-            "convert_custom_downloads_to"
-        )
-
         for stream in chosen_streams:
             if not should_convert:
                 await self._download_stream(
@@ -521,6 +538,12 @@ class Downloader:
                 )
 
                 continue
+
+            ensure_can_use_ffmpeg(
+                self.ffmpeg_executable_path, 
+                custom_file_extension, 
+                "convert_custom_downloads_to"
+            )
 
             try:
                 converted_file_path: Path = resolve_safe_file_path(
