@@ -18,7 +18,7 @@ def stream_repr(stream: Stream) -> str:
     ))
 
     return information_text
-    
+
 
 # Temporary fix for channel video_urls generator returning YoutubeVideo instances (https://github.com/JuanBindez/pytubefix/issues/577)
 def get_channel_video_urls(channel: Channel):

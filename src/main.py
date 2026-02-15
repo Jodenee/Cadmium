@@ -52,7 +52,7 @@ from core.exceptions import InvalidConfigurationError, ImpossibleDownloadPath
 from core.custom_types import Configuration, DownloadConfiguration
 from core.lib import Downloader, ProgressBarFactory
 from core.utilities.configuration import load_configuration, create_configuration_file
-from core.utilities.console import print_failed_downloads, spaced_print
+from core.utilities.console import display_collection_download_result, display_video_download_result, print_failed_downloads, spaced_print
 from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg
 from core.utilities.parse import parse_youtube_link_type
 from core.utilities.constants import SELECT_MENU_INDICATOR, TEMPORARY_FILE_EXTENSIONS
@@ -212,32 +212,17 @@ async def main() -> None:
                 spaced_print(f"Now downloading {mediaType.value} ({url})")  
 
                 if mediaType == MediaType.VIDEO:
-                    result = await downloader.download_video(url, download_format, download_directory)
+                    results = await downloader.download_video(url, download_format, download_directory)
 
-                    if result["success"]:
-                        spaced_print(f"Video ({result['youtube_video_title']}) was downloaded successfully! ({result['download_path']})")
-                    else:
-                        spaced_print(f"An error occurred while downloading Video ({result['youtube_video_title']}) {result['error_message']}")
+                    await display_video_download_result(results)
                 elif mediaType == MediaType.PLAYLIST:
                     result = await downloader.download_playlist(url, download_format, download_directory)
 
-                    if result["success"]:
-                        spaced_print(f"Playlist ({result['playlist_name']}) was downloaded successfully! ({result['download_directory_path']})")
-                    else:
-                        spaced_print(f"An error occurred while downloading Playlist ({result['playlist_name']})")
-                        spaced_print(f"Failed to download the following:")
-
-                        print_failed_downloads(result["failed_downloads"])
+                    await display_collection_download_result(result)
                 else:
                     result = await downloader.download_channel(url, download_format, download_directory)
 
-                    if result["success"]:
-                        spaced_print(f"Channel ({result['channel_name']}) was downloaded successfully! ({result['download_directory_path']})")
-                    else:
-                        spaced_print(f"An error occurred while downloading Channel ({result['channel_name']})")
-                        spaced_print(f"Failed to download the following:")
-
-                        print_failed_downloads(result["failed_downloads"])
+                    await display_collection_download_result(result)
 
             input("\nDownloading complete! (Press enter to continue) ")
             clear_console()
