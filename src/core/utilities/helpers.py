@@ -1,6 +1,6 @@
 # Generics
 
-import re
+from re import sub as re_sub
 from typing import Dict, TypeVar
 
 # Generic variables
@@ -15,3 +15,7 @@ def choose(key: K, map: Dict[K, T], default: T) -> T:
         return map[key]
     except KeyError:
         return default
+    
+    
+def collapse_whitespace(text: str) -> str:
+    return re_sub(r"\s+", " ", text)

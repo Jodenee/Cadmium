@@ -5,7 +5,9 @@ from platform import system, machine
 from re import sub as re_sub
 
 from core.exceptions.impossible_download_path import ImpossibleDownloadPath
-from core.utilities.helpers import choose
+from core.utilities.constants import DARWIN_RESERVED_FILENAME_CHARACTERS, DARWIN_RESERVED_FILENAMES, LINUX_RESERVED_FILENAME_CHARACTERS, \
+    WINDOWS_RESERVED_FILENAME_CHARACTERS, WINDOWS_RESERVED_FILENAMES
+from core.utilities.helpers import choose, collapse_whitespace
 
 from ..custom_types.configuration import Configuration
 from ..enums.os import OperatingSystem
@@ -51,47 +53,17 @@ MAX_OS_FILENAME_LENGTH = choose(get_os(), {}, 255)
 
 def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
     replace_regex: str = choose(get_os(), {
-        OperatingSystem.WINDOWS: r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$",
-        OperatingSystem.LINUX: r"[(\\0)\/.\-*?|&;<>#!]|^\.+|\.+$",
-        OperatingSystem.DARWIN: r"[\/:*?\"<>|]",
+        OperatingSystem.WINDOWS: WINDOWS_RESERVED_FILENAME_CHARACTERS,
+        OperatingSystem.LINUX: LINUX_RESERVED_FILENAME_CHARACTERS,
+        OperatingSystem.DARWIN: DARWIN_RESERVED_FILENAME_CHARACTERS,
     }, r"")
     reserved_filenames: Tuple[str, ...] = choose(get_os(), {
-        OperatingSystem.WINDOWS: (
-            "CON", 
-            "PRN", 
-            "AUX", 
-            "NUL",
-            "COM1", 
-            "COM2", 
-            "COM3", 
-            "COM4", 
-            "COM5", 
-            "COM6", 
-            "COM7", 
-            "COM8", 
-            "COM9",
-            "LPT1", 
-            "LPT2", 
-            "LPT3", 
-            "LPT4", 
-            "LPT5", 
-            "LPT6", 
-            "LPT7", 
-            "LPT8", 
-            "LPT9"
-        ),
-        OperatingSystem.DARWIN: (
-            ".DS_Store",
-            ".Trashes",
-            ".VolumeIcon",
-            ".Spotlight",
-            ".fseventsd",
-            ".TemporaryItems",
-            ".DocumentRevisions",
-            ".AppleDouble"
-        ),
+        OperatingSystem.WINDOWS: WINDOWS_RESERVED_FILENAMES,
+        OperatingSystem.DARWIN: DARWIN_RESERVED_FILENAMES
     }, ())
-    safe_name: str = re_sub(replace_regex, "", name)
+    safe_name: str = collapse_whitespace(
+        re_sub(replace_regex, "", name)
+    )
     upper_case_safe_name: str = safe_name.upper()
 
     for reserved_file_name in reserved_filenames:

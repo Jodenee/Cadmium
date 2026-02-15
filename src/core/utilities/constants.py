@@ -56,3 +56,44 @@ DEFAULT_CONFIGURATION: Configuration = {
         }
     }
 }
+
+# OS specific regexes for removing reserved characters from filenames
+WINDOWS_RESERVED_FILENAME_CHARACTERS = r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$"
+LINUX_RESERVED_FILENAME_CHARACTERS = r"[(\\0)\/.\-*?|&;<>#!]|^\.+|\.+$"
+DARWIN_RESERVED_FILENAME_CHARACTERS = r"[\/:*?\"<>|]"
+
+# OS specific reserved filenames
+WINDOWS_RESERVED_FILENAMES = (
+    "CON", 
+    "PRN", 
+    "AUX", 
+    "NUL",
+    "COM1", 
+    "COM2", 
+    "COM3", 
+    "COM4", 
+    "COM5", 
+    "COM6", 
+    "COM7", 
+    "COM8", 
+    "COM9",
+    "LPT1", 
+    "LPT2", 
+    "LPT3", 
+    "LPT4", 
+    "LPT5", 
+    "LPT6", 
+    "LPT7", 
+    "LPT8", 
+    "LPT9"
+)
+DARWIN_RESERVED_FILENAMES = (
+    ".DS_Store",
+    ".Trashes",
+    ".VolumeIcon",
+    ".Spotlight",
+    ".fseventsd",
+    ".TemporaryItems",
+    ".DocumentRevisions",
+    ".AppleDouble"
+)
