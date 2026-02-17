@@ -3,6 +3,8 @@
 from re import sub as re_sub
 from typing import Dict, TypeVar
 
+from core.utilities.constants import MATCH_CONSECUTIVE_SPACES
+
 # Generic variables
 
 K = TypeVar("K")
@@ -42,4 +44,4 @@ def collapse_whitespace(text: str) -> str:
         "Hello, World!"
     """
 
-    return re_sub(r"\s+", " ", text)
+    return re_sub(MATCH_CONSECUTIVE_SPACES, " ", text)

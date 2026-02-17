@@ -60,15 +60,19 @@ DEFAULT_CONFIGURATION: Configuration = {
     }
 }
 
+# Miscellaneous regexes
+MATCH_NOTHING = compile_regex(r"")
+MATCH_CONSECUTIVE_SPACES = compile_regex(r"\s+")
+
 # Media parsing regexes used to parse media type from url.
 YOUTUBE_VIDEO_REGEX = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/(?:watch\?v=|shorts\/)[\w\-]{11}(?:[&\?]\S*)?$")
 YOUTUBE_PLAYLIST_REGEX = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w\-]+$")
 YOUTUBE_CHANNEL_REGEX = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/@[\w\-\.]+$")
 
 # OS specific regexes for removing reserved characters from filenames
-WINDOWS_RESERVED_FILENAME_CHARACTERS = r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$"
-LINUX_RESERVED_FILENAME_CHARACTERS = r"[(\\0)\/.\-*?|&;<>#!]|^\.+|\.+$"
-DARWIN_RESERVED_FILENAME_CHARACTERS = r"[\/:*?\"<>|]"
+WINDOWS_RESERVED_FILENAME_CHARACTERS = compile_regex(r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$")
+LINUX_RESERVED_FILENAME_CHARACTERS = compile_regex(r"[(\\0)\/.\-*?|&;<>#!]|^\.+|\.+$")
+DARWIN_RESERVED_FILENAME_CHARACTERS = compile_regex(r"[\/:*?\"<>|]")
 
 # OS specific reserved filenames
 WINDOWS_RESERVED_FILENAMES = (

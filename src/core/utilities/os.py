@@ -1,11 +1,11 @@
 from os import environ, system as run_command
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, TypeVar, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 from platform import system, machine
-from re import sub as re_sub
+from re import Pattern, sub as re_sub
 
 from core.exceptions.impossible_download_path import ImpossibleDownloadPath
-from core.utilities.constants import DARWIN_RESERVED_FILENAME_CHARACTERS, DARWIN_RESERVED_FILENAMES, LINUX_RESERVED_FILENAME_CHARACTERS, \
+from core.utilities.constants import DARWIN_RESERVED_FILENAME_CHARACTERS, DARWIN_RESERVED_FILENAMES, LINUX_RESERVED_FILENAME_CHARACTERS, MATCH_NOTHING, \
     WINDOWS_RESERVED_FILENAME_CHARACTERS, WINDOWS_RESERVED_FILENAMES
 from core.utilities.helpers import choose, collapse_whitespace
 
@@ -13,7 +13,6 @@ from ..custom_types.configuration import Configuration
 from ..enums.os import OperatingSystem
 from ..enums.cpu_architecture import CpuArchitecture
 from ..exceptions.invalid_configuration_error import InvalidConfigurationError
-
 
 # Platform information functions
 
@@ -84,11 +83,11 @@ def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
         The sanitized `string`.
     """
 
-    replace_regex: str = choose(get_os(), {
+    replace_regex: Pattern[str] = choose(get_os(), {
         OperatingSystem.WINDOWS: WINDOWS_RESERVED_FILENAME_CHARACTERS,
         OperatingSystem.LINUX: LINUX_RESERVED_FILENAME_CHARACTERS,
         OperatingSystem.DARWIN: DARWIN_RESERVED_FILENAME_CHARACTERS,
-    }, r"")
+    }, MATCH_NOTHING)
     reserved_filenames: Tuple[str, ...] = choose(get_os(), {
         OperatingSystem.WINDOWS: WINDOWS_RESERVED_FILENAMES,
         OperatingSystem.DARWIN: DARWIN_RESERVED_FILENAMES
