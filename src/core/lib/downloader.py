@@ -164,19 +164,13 @@ class Downloader:
     ) -> Path:
         youtube_video_title = await youtube_video.title()
         fallback_filename = f"Video ({youtube_video.video_id})" if stream.includes_video_track else f"Audio ({youtube_video.video_id})"
-        max_filename_length = calculate_max_filename_length(download_directory)
-        safe_filename = safe_full_filename(
-            full_filename=youtube_video_title, 
-            fallback_filename=fallback_filename, 
-            filename_prefix=filename_prefix,
-            max_length=max_filename_length
+        video_full_file_path = resolve_safe_file_path(
+            download_directory,
+            stream.default_filename,
+            fallback_filename,
+            filename_prefix
         )
-
-        if safe_filename == "":
-            raise ImpossibleDownloadPath(download_directory)
         
-        video_full_file_path = download_directory / safe_filename
-
         if video_full_file_path.exists() and skip_existing_files:
             raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
 
@@ -192,7 +186,7 @@ class Downloader:
         download_path: Optional[str] = stream.download(
             output_path=str(download_directory), 
             skip_existing=skip_existing_files,
-            filename=safe_filename
+            filename=video_full_file_path.name
         )
 
         download_bar.close()
