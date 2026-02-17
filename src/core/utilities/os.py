@@ -18,6 +18,15 @@ from ..exceptions.invalid_configuration_error import InvalidConfigurationError
 # Platform information functions
 
 def get_os() -> OperatingSystem:  
+    """Determines the current operating system the application is running on. 
+
+    Determines the current operating system the application is running on. By default `OperatingSystem.UNKNOWN` is returned if the 
+    operating system cannot be determined.
+
+    Returns:
+        A `OperatingSystem` enum representing the current operating system.
+    """
+    
     try:
         return OperatingSystem[system().upper()]
     except KeyError:
@@ -25,6 +34,15 @@ def get_os() -> OperatingSystem:
     
 
 def get_cpu_architecture() -> CpuArchitecture:  
+    """Determines the current CPU architecture the application is running on. 
+
+    Determines the current CPU architecture the application is running on. By default `CpuArchitecture.UNSUPPORTED` is returned if the 
+    CPU architecture is not officially supported.
+
+    Returns:
+        A `OperatingSystem` enum representing the current operating system.
+    """
+
     raw_cpu_architecture_map: Dict[str, CpuArchitecture] = {
         "x86_64": CpuArchitecture.x86_64,
         "AMD64": CpuArchitecture.x86_64,
@@ -52,6 +70,20 @@ MAX_OS_FILENAME_LENGTH = choose(get_os(), {}, 255)
 # OS action functions
 
 def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
+    """Sanitizes a `string` to be fit for naming a file or folder.
+
+    Sanitizes a `string` to be fit for naming a file or folder. If after sanitization the string is 
+    empty or filled with only whitespace, the fallback name is returned.
+
+    Args:
+        name: A `string` containing the name to be sanitized.
+        fallback_name: A fallback name if after sanitization the string is empty or filled with only whitespace.
+        max_length: The maximum length of the name.
+
+    Returns:
+        The sanitized `string`.
+    """
+
     replace_regex: str = choose(get_os(), {
         OperatingSystem.WINDOWS: WINDOWS_RESERVED_FILENAME_CHARACTERS,
         OperatingSystem.LINUX: LINUX_RESERVED_FILENAME_CHARACTERS,
@@ -83,6 +115,21 @@ def safe_full_filename(
     max_length: int = MAX_OS_FILENAME_LENGTH, 
     extension_override: Optional[str] = None
 ) -> str:
+    """Sanitizes a filename (including extension) to be fit for the current operating system.
+
+    Sanitizes a filename (including extension) to be fit for the current operating system. If after sanitization the filename is 
+    empty or filled with only whitespace, the fallback filename is returned.
+
+    Args:
+        full_filename: A full filename (including extension).
+        fallback_filename: A fallback filename if after sanitization the filename is empty or filled with only whitespace.
+        filename_prefix: An optional prefix for the filename.
+        max_length: The maximum length the filename (including extension) must conform to.
+        extension_override: An optional override for the filename's extension.
+    Returns:
+        The sanitized filename.
+    """
+
     split_full_filename: List[str] = full_filename.rsplit(".", 1)
     filename: str = split_full_filename[0]
     file_extension: str = split_full_filename[len(split_full_filename) - 1] if extension_override == None else extension_override
@@ -98,15 +145,30 @@ def safe_full_filename(
 
 
 def safe_join_directory(
-    create_in: Path, 
-    directory_name: str, 
-    fallback_directory_name: str
+    base: Path, 
+    name: str, 
+    fallback_name: str
 ) -> Path:
-    safe_name = safe_os_name(
-        directory_name,
-        fallback_directory_name
+    """Safely joins a directory with another ensuring the operating system's path limit is not exceeded.
+
+    Args:
+        base: A `Path` to a directory.
+        name: The name of the directory to join with `base`.
+        fallback_name: A fallback directory name if after sanitization the directory name is empty or filled with only whitespace.
+
+    Returns:
+        The joined `Path`.
+
+    Raises:
+        ImpossibleDownloadPath:
+            Raised if the length of the joined path is greater than the operating system's maximum path length.
+    """    
+
+    safe_directory_name = safe_os_name(
+        name,
+        fallback_name
     )
-    path = create_in / safe_name
+    path = base / safe_directory_name
 
     if len(str(path)) > MAX_OS_PATH_LENGTH:
         raise ImpossibleDownloadPath(path)
@@ -121,6 +183,23 @@ def resolve_safe_file_path(
     filename_prefix: Optional[str] = None, 
     extension_override: Optional[str] = None
 ) -> Path:
+    """Safely joins a directory with a filename by ensuring it does not exceed the operating systems path length limit.
+
+    Args:
+        directory: A `Path` to a directory.
+        filename: The filename to be joined with `directory`.
+        fallback_filename: A fallback filename if after sanitization the filename is empty or filled with only whitespace.
+        filename_prefix: An optional prefix to be added to the filename.
+        extension_override: An optional override for the filename's extension.
+
+    Returns:
+        The resolved full `Path` of the file.
+
+    Raises:
+        ImpossibleDownloadPath:
+            Raised if the length of the resolved path is greater than the operating system's maximum path length.
+    """    
+
     safe_filename = safe_full_filename(
         filename,
         fallback_filename,
@@ -135,20 +214,47 @@ def resolve_safe_file_path(
     return directory / safe_filename
 
 
-def calculate_max_filename_length(download_directory: Union[Path, str]):
-    return min(MAX_OS_PATH_LENGTH - (len(str(download_directory)) + 1), MAX_OS_FILENAME_LENGTH)
+def calculate_max_filename_length(directory: Union[Path, str]) -> int:
+    """Calculates the maximum filename length allowed in `directory` to not exceed the operating system's path limit.
+
+    Args:
+        directory: A `Pathlike` that leads to a directory.
+
+    Returns:
+        The maximum filename length allowed in `directory`.
+    """    
+
+    return min(MAX_OS_PATH_LENGTH - (len(str(directory)) + 1), MAX_OS_FILENAME_LENGTH)
 
 
-def count_directory_files(path: Path, with_extensions: List[str]) -> int:
+def count_directory_files(directory: Path, with_extensions: List[str]) -> int:
+    """Counts how many files are inside `directory` with a extensions in `with_extensions`.
+
+    Args:
+        directory: A `Pathlike` that leads to a directory.
+        with_extensions: A `List` of file extensions to count.
+
+    Returns:
+        The total number of files inside `directory` with extension in `with_extensions`.
+    """
+
     return len([
-        file for file in path.iterdir() 
+        file for file in directory.iterdir() 
         if file.is_file() and file.suffix in with_extensions
     ])
 
 
-def clear_directory_files(path: Path, with_extensions: List[str], on_progress: Optional[Callable[[int], None]] = None):
+def clear_directory_files(directory: Path, with_extensions: List[str], on_progress: Optional[Callable[[int], None]] = None) -> None:
+    """Clears `directory` of files with extension in `with_extensions`.
+
+    Args:
+        directory: A `Path` that leads to a directory.
+        with_extensions: A `List` of file extensions to count.
+        on_progress: A callback function to track the progress of clearing `directory`.
+    """
+
     files_to_remove = [
-        file for file in path.iterdir() 
+        file for file in directory.iterdir() 
         if file.is_file() and file.suffix in with_extensions
     ]
 
@@ -160,6 +266,26 @@ def clear_directory_files(path: Path, with_extensions: List[str], on_progress: O
 
 
 def try_find_ffmpeg(configuration: Configuration, packaged_ffmpeg_binaries_directory_path: Path) -> Optional[Path]:
+    """Attempts to find an FFmpeg binary according with the user's configurations.
+
+    Args:
+        configuration: The user's configurations.  
+        packaged_ffmpeg_binaries_directory_path: A `Path` that leads to the packaged ffmpeg binaries directory.
+
+    Returns:
+        An optional `Path` to an FFmpeg binary.
+
+    Raises:
+        InvalidConfigurationError:
+            Raised if any of the following conditions are met
+            
+            * `custom_ffmpeg_executable_path` configuration is set but does not exist,
+            * `custom_ffmpeg_executable_path` configuration is set but does not lead to a file,
+            * `use_path_ffmpeg` is enabled but ffmpeg could not be found in PATH,
+            * `use_packaged_ffmpeg` is enabled and OS is unknown or CPU architecture is unsupported,
+            * `use_packaged_ffmpeg` is enabled and Packaged FFmpeg binary not found.
+    """
+
     if not configuration["external_dependency_configuration"]["ffmpeg"]["use_ffmpeg"]:
         return
 
@@ -198,14 +324,16 @@ def try_find_ffmpeg(configuration: Configuration, packaged_ffmpeg_binaries_direc
         platform_ffmpeg_binary_path = packaged_ffmpeg_binaries_directory_path.joinpath(platform_ffmpeg_directory_name, "bin", ffmpeg_filename)
 
         if os == OperatingSystem.UNKNOWN or cpu_architecture == CpuArchitecture.UNSUPPORTED:
-            raise InvalidConfigurationError("use_packaged_ffmpeg", "Could not determine necessary platform specs to load appropriate ffmpeg binary")
+            raise InvalidConfigurationError("use_packaged_ffmpeg", "Could not determine necessary platform specs to load appropriate FFmpeg binary")
         elif not platform_ffmpeg_binary_path.exists():
-            raise InvalidConfigurationError("use_packaged_ffmpeg", "Packaged ffmpeg binary does not exist, please do a fresh install of Cadmium to fix this issue")
+            raise InvalidConfigurationError("use_packaged_ffmpeg", "Packaged FFmpeg binary does not exist, please do a fresh install of Cadmium to fix this issue")
         
         return platform_ffmpeg_binary_path
 
 
 def clear_console() -> None:
+    "Clears all text from console."     
+
     run_command(choose(get_os(), {
         OperatingSystem.WINDOWS: "cls"
     }, "clear"))

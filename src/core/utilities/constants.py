@@ -1,6 +1,9 @@
 from typing import List
+from re import compile as compile_regex
+
 from core.custom_types.configuration import Configuration
 
+# General constants to be used within the application
 TEMPORARY_FILE_EXTENSIONS: List[str] = [ ".webm", ".m4a", ".mp4", ".mp3" ]
 SELECT_MENU_INDICATOR: str = ">"
 DEFAULT_CONFIGURATION: Configuration = {
@@ -56,6 +59,11 @@ DEFAULT_CONFIGURATION: Configuration = {
         }
     }
 }
+
+# Media parsing regexes used to parse media type from url.
+YOUTUBE_VIDEO_REGEX = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/(?:watch\?v=|shorts\/)[\w\-]{11}(?:[&\?]\S*)?$")
+YOUTUBE_PLAYLIST_REGEX = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w\-]+$")
+YOUTUBE_CHANNEL_REGEX = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/@[\w\-\.]+$")
 
 # OS specific regexes for removing reserved characters from filenames
 WINDOWS_RESERVED_FILENAME_CHARACTERS = r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$"

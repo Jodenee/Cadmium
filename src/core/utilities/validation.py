@@ -13,13 +13,15 @@ def ensure_can_use_ffmpeg(
     Args:
         ffmpeg_executable_path: An optional Path to the ffmpeg executable to be used.
         file_extension: The file extension to be converted to.
-        file_extension_configuration_name: the file extension configuration name
+        file_extension_configuration_name: the file extension configuration name.
 
     Raises:
         InvalidConfigurationError: 
-            Raised if `ffmpeg_executable_path is None` 
-            or `file_extension is None` 
-            or the `length of file_extension is 0`.
+            Raised if any of the following conditions are met
+
+            * `ffmpeg_executable_path` is None.
+            * `file_extension` is None.
+            * Length of `file_extension` is 0.
     """
 
     if ffmpeg_executable_path == None:

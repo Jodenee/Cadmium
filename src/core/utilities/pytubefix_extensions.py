@@ -1,6 +1,15 @@
 from pytubefix import YouTube, Stream, Channel
 
 def stream_repr(stream: Stream) -> str:
+    """Produces a user friendly description of a stream. 
+
+    Args:
+        stream: A `Stream`.
+
+    Returns:
+        A user friendly description of the stream.
+    """
+
     separator = " | "
     fps = stream.fps if hasattr(stream, 'fps') else 'N/A'
     bitrate = f"{stream.bitrate / 1000}kbps" if stream.bitrate != None else 'N/A'
@@ -20,8 +29,18 @@ def stream_repr(stream: Stream) -> str:
     return information_text
 
 
-# Temporary fix for channel video_urls generator returning YoutubeVideo instances (https://github.com/JuanBindez/pytubefix/issues/577)
 def get_channel_video_urls(channel: Channel):
+    """Yields all video urls of a channel. 
+
+    Temporary fix for channel video_urls generator returning YoutubeVideo instances (https://github.com/JuanBindez/pytubefix/issues/577)
+
+    Args:
+        channel: A `Channel`.
+
+    Returns:
+        A generator that yields youtube video watch urls.
+    """
+
     video: YouTube
     for video in channel.video_urls:
         yield video.watch_url

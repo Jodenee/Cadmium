@@ -9,11 +9,31 @@ from core.utilities.pytubefix_extensions import stream_repr
 
 # Functions
 
-def spaced_print(*objects, sep: Optional[str] = "", flush: bool = False, end: Optional[str] = None) -> None:
-    print(*("\n", *objects), sep=sep, flush=flush, end=end)
+def spaced_print(*values, sep: Optional[str] = "", flush: bool = False, end: Optional[str] = None) -> None:
+    """A wrapper for the built in `print` function to ensure output is spaced properly.
+
+    Args:
+        values:
+            A `Tuple` of values to output.
+        sep:
+            `string` inserted between values, default an empty string.
+        end:
+            `string` appended after the last value, default a newline.
+        flush:
+            Whether to forcibly flush the stream.
+    """
+
+    print(*("\n", *values), sep=sep, flush=flush, end=end)
 
 
-async def print_failed_downloads(failed_downloads: List[VideoDownloadResult]):
+async def print_failed_downloads(failed_downloads: List[VideoDownloadResult]) -> None:
+    """Prints failed download information in a user friendly format.
+
+    Args:
+        failed_downloads:
+            A `List` of `VideoDownloadResult` to show the user.
+    """
+
     information_text = []
 
     for failed_download in failed_downloads:
@@ -27,7 +47,14 @@ async def print_failed_downloads(failed_downloads: List[VideoDownloadResult]):
     spaced_print(str.join("\n\n", information_text))
 
 
-async def display_video_download_result(results: List[VideoDownloadResult]):
+async def display_video_download_result(results: List[VideoDownloadResult]) -> None:
+    """Prints the result of a video download in a user friendly format.
+
+    Args:
+        failed_downloads:
+            A `List` of `VideoDownloadResult` to show the user.
+    """
+
     for result in results:
         if result["success"]:
             spaced_print(f"Video ({await result['youtube_video'].title()}) was downloaded successfully! ({result['download_path']})")
@@ -35,7 +62,14 @@ async def display_video_download_result(results: List[VideoDownloadResult]):
             spaced_print(f"An error occurred while downloading Video ({await result['youtube_video'].title()}) {result['error_message']}")
 
 
-async def display_collection_download_result(result: CollectionDownloadResult):
+async def display_collection_download_result(result: CollectionDownloadResult) -> None:
+    """Prints the result of a collection download in a user friendly format.
+
+    Args:
+        result:
+            A `CollectionDownloadResult` to show the user.
+    """
+
     if result["success"]:
         spaced_print(f"{result['collection_type']} ({result['collection_name']}) was downloaded successfully! ({result['download_directory_path']})")
     else:
@@ -46,6 +80,19 @@ async def display_collection_download_result(result: CollectionDownloadResult):
 
 
 def pick_from_streams(streams: StreamQuery, label_generator: Optional[Callable[[Stream], str]] = None) -> List[Stream]:
+    """Prompts the user to select one or more of the provided `streams`.
+
+    Args:
+        streams:
+            A collection of streams the user must choose from.
+        label_generator:
+            A callback function to allow customization of label generation. By default labels 
+            are generated in the following format "stream {stream_itag}".
+
+    Returns:
+        A `List` of `Stream` chosen by the user.
+    """
+
     options = [ 
         Option(
             f"stream {stream.itag}" if not label_generator else label_generator(stream),
