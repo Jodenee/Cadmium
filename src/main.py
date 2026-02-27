@@ -25,7 +25,6 @@ SOFTWARE.
 __version__ = "1.0.0"
 
 import asyncio
-import sys
 import pick
 
 # configure custom keybinds
@@ -40,7 +39,7 @@ pick.KEYS_SELECT += (ARROW_KEY_RIGHT, ord("d") )
 pick.KEYS_ENTER += (459, )
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from traceback import format_exc as get_traceback
 from pick import Option, pick
 from pytubefix.exceptions import BotDetection
@@ -49,121 +48,61 @@ from sys import exit
 from core.enums import DownloadFormat, MediaType
 from core.enums.main_menu_option import MainMenuOption
 from core.exceptions import InvalidConfigurationError, ImpossibleDownloadPath
-from core.custom_types import Configuration, DownloadConfiguration
+from core.custom_types import Configuration
 from core.lib import Downloader, ProgressBarFactory
 from core.utilities.configuration import load_configuration, create_configuration_file
-from core.utilities.console import display_collection_download_result, display_video_download_result, print_failed_downloads, spaced_print
+from core.utilities.console import display_collection_download_result, display_video_download_result, spaced_print
 from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg
 from core.utilities.parse import parse_youtube_link_type
-from core.utilities.constants import SELECT_MENU_INDICATOR, TEMPORARY_FILE_EXTENSIONS
-
-# required + default files/directories
-
-if getattr(sys, "frozen", False):
-    project_root_directory: Path = Path(sys.executable).parent.resolve() # If run as an exe
-else:
-    project_root_directory: Path = Path(__file__).parent.resolve() # if run with python interpreter
-
-binaries_directory_path: Path = project_root_directory.joinpath("core", "bin")
-packaged_ffmpeg_binaries_directory_path: Path = binaries_directory_path.joinpath("ffmpeg")
-
-to_download_file: Path = project_root_directory.joinpath("to_download.txt")
-configuration_file_path: Path = project_root_directory.joinpath("configuration.json")
-temporary_files_directory_path: Path = project_root_directory.joinpath("temporary_files")
-downloads_directory_path: Path = project_root_directory.joinpath("downloads")
-
-default_video_download_directory_path: Path = downloads_directory_path.joinpath("video")
-default_video_only_download_directory_path: Path = downloads_directory_path.joinpath("video_only")
-default_audio_download_directory_path: Path = downloads_directory_path.joinpath("audio_only")
-default_best_of_both_download_directory_path: Path = downloads_directory_path.joinpath("best_of_both")
-default_custom_download_directory_path: Path = downloads_directory_path.joinpath("custom")
+from core.utilities.constants import CONFIGURATION_FILE_PATH, DEFAULT_DOWNLOAD_LOCATIONS_MAP, DOWNLOAD_FORMAT_MENU_OPTIONS, DOWNLOADS_DIRECTORY_PATH, MAIN_MENU_OPTIONS, SELECT_MENU_INDICATOR, \
+    TEMPORARY_FILE_EXTENSIONS, TEMPORARY_FILES_DIRECTORY_PATH, TO_DOWNLOAD_FILE_PATH
 
 # constant values
 
-configuration: Configuration = load_configuration(configuration_file_path)
+configuration: Configuration = load_configuration(CONFIGURATION_FILE_PATH)
 progress_bar_factory = ProgressBarFactory(configuration)
-main_menu_options: Tuple[Option, ...] = (
-    Option(MainMenuOption.DOWNLOAD.value, MainMenuOption.DOWNLOAD, "Download videos."),
-    Option(f"{MainMenuOption.EDIT_CONFIGURATION.value} (Coming soon)", MainMenuOption.EDIT_CONFIGURATION, "Edit Cadmium's configuration.", enabled=False),
-    Option(MainMenuOption.EXIT.value, MainMenuOption.EXIT, "Exit the program.")
-)
-download_format_menu_options: Tuple[Option, ...] = (
-    Option(DownloadFormat.VIDEO.value, DownloadFormat.VIDEO, "Downloads both video and audio tracks but at low quality."), 
-    Option(DownloadFormat.VIDEO_ONLY.value, DownloadFormat.VIDEO_ONLY, "Downloads only the video track but at high quality."), 
-    Option(DownloadFormat.AUDIO_ONLY.value, DownloadFormat.AUDIO_ONLY, "Downloads only the audio track but at high quality."), 
-    Option(DownloadFormat.BEST_OF_BOTH.value, DownloadFormat.BEST_OF_BOTH, "Downloads both the video and audio tracks but at high quality."),
-    Option(DownloadFormat.CUSTOM.value, DownloadFormat.CUSTOM, "Downloads any streams of your choosing."),
-    Option("back", "back", "Go back to the main menu without downloading anything.")
-)
-download_format_to_custom_download_configuration: Dict[DownloadFormat, DownloadConfiguration] = {
-    DownloadFormat.VIDEO: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_video_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["video_download_location_override"],
-        "default_download_location": default_video_download_directory_path
-    },
-    DownloadFormat.VIDEO_ONLY: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_video_only_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["video_only_download_location_override"],
-        "default_download_location": default_video_only_download_directory_path
-    },
-    DownloadFormat.AUDIO_ONLY: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_audio_only_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["audio_only_download_location_override"],
-        "default_download_location": default_audio_download_directory_path
-    },
-    DownloadFormat.BEST_OF_BOTH: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_best_of_both_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["best_of_both_download_location_override"],
-        "default_download_location": default_best_of_both_download_directory_path
-    },
-    DownloadFormat.CUSTOM: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_custom_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["custom_download_location_override"],
-        "default_download_location": default_custom_download_directory_path
-    }
-}
 
 # Program
 
 async def main() -> None:
-    if not configuration_file_path.exists(): 
-        create_configuration_file(configuration_file_path)
+    if not CONFIGURATION_FILE_PATH.exists(): 
+        create_configuration_file(CONFIGURATION_FILE_PATH)
 
     # find external dependencies
-    ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration, packaged_ffmpeg_binaries_directory_path)
+    ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration)
 
     # ensure required files exist
-    temporary_files_directory_path.mkdir(exist_ok=True)
-    to_download_file.touch()
+    TEMPORARY_FILES_DIRECTORY_PATH.mkdir(exist_ok=True)
+    TO_DOWNLOAD_FILE_PATH.touch()
 
     # initialise objects
     downloader: Downloader = Downloader(
         configuration, 
         progress_bar_factory, 
-        temporary_files_directory_path, 
+        TEMPORARY_FILES_DIRECTORY_PATH, 
         ffmpeg_executable_path
     )
 
     if not configuration["warning_configuration"]["silence_existing_temporary_files_warning"]:
-        number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, TEMPORARY_FILE_EXTENSIONS)
+        number_of_existing_temp_files: int = count_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS)
 
         if number_of_existing_temp_files > 0: 
             pick(
                 [ "Continue" ], 
-                f"WARNING: You have {number_of_existing_temp_files} temporary file(s) that can be removed! ({str(temporary_files_directory_path)})", 
+                f"WARNING: You have {number_of_existing_temp_files} temporary file(s) that can be removed! ({str(TEMPORARY_FILES_DIRECTORY_PATH)})", 
                 indicator=SELECT_MENU_INDICATOR
             )
 
     while True:
         main_menu_option: MainMenuOption = pick(
-            main_menu_options, 
+            MAIN_MENU_OPTIONS, 
             f"Cadmium - v{__version__} (https://github.com/Jodenee/Cadmium)", 
             indicator=SELECT_MENU_INDICATOR
         )[0].value # type: ignore
 
         if main_menu_option == MainMenuOption.DOWNLOAD:
             download_format: DownloadFormat = pick(
-                download_format_menu_options, 
+                DOWNLOAD_FORMAT_MENU_OPTIONS, 
                 "Which format should the videos be downloaded as", 
                 indicator=SELECT_MENU_INDICATOR
             )[0].value # type: ignore
@@ -171,36 +110,39 @@ async def main() -> None:
             if download_format == "back":
                 continue
 
-            download_configuration = download_format_to_custom_download_configuration[download_format]
+            download_location_override_configuration = configuration["quality_of_life_configuration"]["download_location_overrides"]
+            download_format_str = download_format.replace(" ", "_")
+
+            use_download_location_override = download_location_override_configuration[f"use_{download_format_str}_download_location_override"]
+            download_location_override = download_location_override_configuration[f"{download_format_str}_download_location_override"]
+            default_download_location = DEFAULT_DOWNLOAD_LOCATIONS_MAP[download_format]
+
             download_directory: Path
 
-            if not download_configuration["use_download_location_override"]:
-                downloads_directory_path.mkdir(exist_ok=True)
-                download_configuration["default_download_location"].mkdir(exist_ok=True)
+            if not use_download_location_override:
+                DOWNLOADS_DIRECTORY_PATH.mkdir(exist_ok=True)
+                default_download_location.mkdir(exist_ok=True)
 
-                download_directory = download_configuration["default_download_location"]
+                download_directory = default_download_location
             else:
-                custom_download_directory = download_configuration["download_location_override"]
-
-                if (custom_download_directory == None):
-                    raise InvalidConfigurationError(f"{str(download_format)}_download_location_override", "is empty")
-
-                download_directory = Path(custom_download_directory).resolve()
-
-                if (not download_directory.exists()):
-                    raise InvalidConfigurationError(f"{str(download_format)}_download_location_override", "does not exist")      
-                elif (download_directory.is_file()):
-                    raise InvalidConfigurationError(f"{str(download_format)}_download_location_override", "is a file")
+                if (download_location_override == None):
+                    raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "is empty")
+                elif (not download_location_override.exists()):
+                    raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "does not exist")      
+                elif (download_location_override.is_file()):
+                    raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "is a file")
+                
+                download_directory = download_location_override
 
             urls: List[str]
 
-            with to_download_file.open("r") as file:
+            with TO_DOWNLOAD_FILE_PATH.open("r") as file:
                 urls = [ line.removesuffix("\n") for line in file.readlines() if not line.isspace() ]
 
             if len(urls) <= 0:
                 pick(
                     [ "return to main menu" ], 
-                    f"No YouTube urls found in ({str(to_download_file)}).",
+                    f"No YouTube urls found in ({str(TO_DOWNLOAD_FILE_PATH)}).",
                     SELECT_MENU_INDICATOR
                 )
                 continue
@@ -228,15 +170,15 @@ async def main() -> None:
             clear_console()
         elif main_menu_option == MainMenuOption.EXIT:
             if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
-                total_files_to_remove = count_directory_files(temporary_files_directory_path, TEMPORARY_FILE_EXTENSIONS)
+                total_files_to_remove = count_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS)
 
                 if total_files_to_remove > 0:
                     clear_directory_progress_bar = progress_bar_factory.clear_directory(
-                        f"Clearing ({temporary_files_directory_path})", 
+                        f"Clearing ({TEMPORARY_FILES_DIRECTORY_PATH})", 
                         total_files_to_remove
                     )
 
-                    clear_directory_files(temporary_files_directory_path, TEMPORARY_FILE_EXTENSIONS, clear_directory_progress_bar.on_progress)
+                    clear_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS, clear_directory_progress_bar.on_progress)
 
                     clear_directory_progress_bar.close()
             

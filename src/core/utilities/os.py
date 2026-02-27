@@ -5,7 +5,7 @@ from platform import system, machine
 from re import Pattern, sub as re_sub
 
 from core.exceptions.impossible_download_path import ImpossibleDownloadPath
-from core.utilities.constants import DARWIN_RESERVED_FILENAME_CHARACTERS, DARWIN_RESERVED_FILENAMES, LINUX_RESERVED_FILENAME_CHARACTERS, MATCH_NOTHING, \
+from core.utilities.constants import DARWIN_RESERVED_FILENAME_CHARACTERS, DARWIN_RESERVED_FILENAMES, LINUX_RESERVED_FILENAME_CHARACTERS, MATCH_NOTHING, PACKAGED_FFMPEG_BINARIES_DIRECTORY_PATH, \
     WINDOWS_RESERVED_FILENAME_CHARACTERS, WINDOWS_RESERVED_FILENAMES
 from core.utilities.helpers import choose, collapse_whitespace
 
@@ -68,7 +68,7 @@ MAX_OS_FILENAME_LENGTH = choose(get_os(), {}, 255)
 
 # OS action functions
 
-def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
+def safe_os_name(name: str, fallback_name: str, max_length: int = MAX_OS_FILENAME_LENGTH) -> str:
     """Sanitizes a `string` to be fit for naming a file or folder.
 
     Sanitizes a `string` to be fit for naming a file or folder. If after sanitization the string is 
@@ -169,7 +169,7 @@ def safe_join_directory(
     )
     path = base / safe_directory_name
 
-    if len(str(path)) > MAX_OS_PATH_LENGTH:
+    if len(str(path)) > MAX_OS_PATH_LENGTH or safe_directory_name == "":
         raise ImpossibleDownloadPath(path)
 
     return path
@@ -264,12 +264,11 @@ def clear_directory_files(directory: Path, with_extensions: List[str], on_progre
             on_progress(file_number)
 
 
-def try_find_ffmpeg(configuration: Configuration, packaged_ffmpeg_binaries_directory_path: Path) -> Optional[Path]:
+def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
     """Attempts to find an FFmpeg binary according with the user's configurations.
 
     Args:
         configuration: The user's configurations.  
-        packaged_ffmpeg_binaries_directory_path: A `Path` that leads to the packaged ffmpeg binaries directory.
 
     Returns:
         An optional `Path` to an FFmpeg binary.
@@ -320,7 +319,7 @@ def try_find_ffmpeg(configuration: Configuration, packaged_ffmpeg_binaries_direc
         os = get_os()
         cpu_architecture = get_cpu_architecture()
         platform_ffmpeg_directory_name = f"{os.value.lower()}_{cpu_architecture.value.lower()}"
-        platform_ffmpeg_binary_path = packaged_ffmpeg_binaries_directory_path.joinpath(platform_ffmpeg_directory_name, "bin", ffmpeg_filename)
+        platform_ffmpeg_binary_path = PACKAGED_FFMPEG_BINARIES_DIRECTORY_PATH.joinpath(platform_ffmpeg_directory_name, "bin", ffmpeg_filename)
 
         if os == OperatingSystem.UNKNOWN or cpu_architecture == CpuArchitecture.UNSUPPORTED:
             raise InvalidConfigurationError("use_packaged_ffmpeg", "Could not determine necessary platform specs to load appropriate FFmpeg binary")

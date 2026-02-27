@@ -172,7 +172,7 @@ class Downloader:
         )
         
         if video_full_file_path.exists() and skip_existing_files:
-            raise VideoDownloadSkipped(f"Already exists in ({download_directory}).")
+            raise VideoDownloadSkipped(f"Already exists ({video_full_file_path}).")
 
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
             spaced_print(f"Chosen stream info: {stream_repr(stream)}")
