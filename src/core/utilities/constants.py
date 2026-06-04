@@ -155,6 +155,11 @@ DARWIN_RESERVED_FILENAMES = (
     ".AppleDouble"
 )
 
+# Error messages
+UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE = "Video ({video_title}) could not find a suitable stream."
+VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE = "Video ({video_title}) download has been cancelled."
+ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE = "Already exists at ({path})."
+
 # Miscellaneous regexes
 MATCH_NOTHING = compile_regex(r"")
 MATCH_CONSECUTIVE_SPACES = compile_regex(r"\s+")

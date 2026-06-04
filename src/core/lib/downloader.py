@@ -1,22 +1,21 @@
-from typing import List, Optional, Tuple, cast
+from typing import List, Optional, cast
 
-from pick import pick, Option
 from pytubefix.async_youtube import AsyncYouTube
-from pytubefix import YouTube, Playlist, Stream, StreamQuery, Channel
-from pytubefix.exceptions import MaxRetriesExceeded
+from pytubefix import Playlist, Stream, StreamQuery, Channel
 from pathlib import Path
 
 from core.custom_types.collection_download_result import CollectionDownloadResult
+from core.utilities.constants import ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE
 from core.utilities.file_conversion import convert_file
 from core.utilities.validation import ensure_can_use_ffmpeg
 from core.utilities.console import pick_from_streams, spaced_print
-from core.utilities.os import calculate_max_filename_length, resolve_safe_file_path, safe_join_directory, safe_full_filename, safe_os_name, MAX_OS_PATH_LENGTH
-from core.utilities.pytubefix_extensions import get_channel_video_urls, stream_repr
+from core.utilities.os import resolve_safe_file_path, safe_join_directory
+from core.utilities.pytubefix_extensions import stream_repr
 
 from ..lib import ProgressBarFactory
 from ..custom_types import Configuration, VideoDownloadResult
 from ..enums import DownloadFormat
-from ..exceptions import NoStreamsFoundError, VideoDownloadSkipped, DownloadCancelled, ImpossibleDownloadPath
+from ..exceptions import ImpossibleDownloadPath
 
 class Downloader:
     def __init__(
@@ -41,45 +40,47 @@ class Downloader:
     ) -> List[VideoDownloadResult]:
         youtube_video: AsyncYouTube = AsyncYouTube(youtube_video_url)
         streams: StreamQuery = await youtube_video.streams()
-        youtube_video_title: str = await youtube_video.title()
-
-        if len(streams) == 0: 
-            raise NoStreamsFoundError(youtube_video_title)
-
         download_results: List[VideoDownloadResult] = []
 
-        try:
-            if download_format == DownloadFormat.VIDEO:
-                return await self._download_video(youtube_video, download_directory, filename_prefix)
-            elif download_format == DownloadFormat.VIDEO_ONLY:
-                return await self._download_video_only(youtube_video, download_directory, filename_prefix)
-            elif download_format == DownloadFormat.AUDIO_ONLY:
-                return await self._download_audio_only(youtube_video, download_directory, filename_prefix)
-            elif download_format == DownloadFormat.BEST_OF_BOTH:
-                return await self._download_best_of_both(youtube_video, download_directory, filename_prefix)
-            elif download_format == DownloadFormat.CUSTOM:
-                chosen_streams: List[Stream] = pick_from_streams(streams)
-
-                if self.configuration["quality_of_life_configuration"]["put_custom_streams_in_folder"]:
-                    true_download_directory_name = safe_os_name(
-                        await youtube_video.title(),
-                        f"Video ({youtube_video.video_id})"
-                    ) 
-                    download_directory = download_directory / true_download_directory_name
-
-                    if len(str(download_directory)) > MAX_OS_PATH_LENGTH:
-                        raise ImpossibleDownloadPath(download_directory)
-                    
-                    download_directory.mkdir(exist_ok=True)
-
-                return await self._download_custom(youtube_video, chosen_streams, download_directory, filename_prefix)
-        except (VideoDownloadSkipped, DownloadCancelled, MaxRetriesExceeded) as exception:
+        if len(streams) == 0: 
             return [{
                 "success": False,
                 "youtube_video": youtube_video,
                 "download_path": None,
-                "error_message": str(exception)
+                "error_message": f"Video ({await youtube_video.title()}) doesn't have any available streams."
             }]
+
+        if download_format == DownloadFormat.VIDEO:
+            video_download_result = await self._download_video(youtube_video, download_directory, filename_prefix)
+
+            return [ video_download_result ]
+        elif download_format == DownloadFormat.VIDEO_ONLY:
+            video_only_download_result = await self._download_video_only(youtube_video, download_directory, filename_prefix)
+
+            return [ video_only_download_result ]
+        elif download_format == DownloadFormat.AUDIO_ONLY:
+            audio_only_download_result = await self._download_audio_only(youtube_video, download_directory, filename_prefix)
+
+            return [ audio_only_download_result ]
+        elif download_format == DownloadFormat.BEST_OF_BOTH:
+            best_of_both_download_results = await self._download_best_of_both(youtube_video, download_directory, filename_prefix)
+
+            return best_of_both_download_results
+        elif download_format == DownloadFormat.CUSTOM:
+            chosen_streams: List[Stream] = pick_from_streams(streams)
+
+            if self.configuration["quality_of_life_configuration"]["put_custom_streams_in_folder"]:
+                download_directory = safe_join_directory(
+                    download_directory,
+                    await youtube_video.title(),
+                    f"Video ({youtube_video.video_id})"
+                )
+                
+                download_directory.mkdir(exist_ok=True, parents=True)
+
+            custom_download_results = await self._download_custom(youtube_video, chosen_streams, download_directory, filename_prefix)
+
+            return custom_download_results
 
         return download_results
 
@@ -95,7 +96,7 @@ class Downloader:
 
         if self.configuration["quality_of_life_configuration"]["put_playlist_videos_in_folder"]:
             true_download_directory = safe_join_directory(download_directory, playlist.title, f"Playlist ({playlist.playlist_id})")
-            true_download_directory.mkdir(exist_ok=True)
+            true_download_directory.mkdir(exist_ok=True, parents=True)
 
         failed_downloads: List[VideoDownloadResult] = []
 
@@ -130,11 +131,11 @@ class Downloader:
 
         if self.configuration["quality_of_life_configuration"]["put_channel_videos_in_folder"]:
             true_download_directory = safe_join_directory(download_directory, channel.channel_name, f"Channel ({channel.channel_id})")
-            true_download_directory.mkdir(exist_ok=True)
+            true_download_directory.mkdir(exist_ok=True, parents=True)
 
         failed_downloads: List[VideoDownloadResult] = []
 
-        for video_url in get_channel_video_urls(channel):
+        for video_url in channel.video_urls:
             results = await self.download_video(
                 video_url, 
                 download_format, 
@@ -161,18 +162,32 @@ class Downloader:
         download_directory: Path, 
         skip_existing_files: bool,
         filename_prefix: Optional[str] = None
-    ) -> Path:
+    ) -> VideoDownloadResult:
         youtube_video_title = await youtube_video.title()
         fallback_filename = f"Video ({youtube_video.video_id})" if stream.includes_video_track else f"Audio ({youtube_video.video_id})"
-        video_full_file_path = resolve_safe_file_path(
-            download_directory,
-            stream.default_filename,
-            fallback_filename,
-            filename_prefix
-        )
+        
+        try:
+            video_full_file_path = resolve_safe_file_path(
+                download_directory,
+                stream.default_filename,
+                fallback_filename,
+                filename_prefix
+            )
+        except ImpossibleDownloadPath as exception:
+            return {
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str(exception)
+            }
         
         if video_full_file_path.exists() and skip_existing_files:
-            raise VideoDownloadSkipped(f"Already exists ({video_full_file_path}).")
+            return {
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=video_full_file_path)
+            }
 
         if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
             spaced_print(f"Chosen stream info: {stream_repr(stream)}")
@@ -192,29 +207,48 @@ class Downloader:
         download_bar.close()
 
         if (download_path == None):
-            raise DownloadCancelled(youtube_video_title)
+            return {
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str.format(VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE, video_title=youtube_video_title)
+            } 
         
-        return Path(download_path)
+        return {
+            "success": True,
+            "youtube_video": youtube_video,
+            "download_path": Path(download_path),
+            "error_message": None
+        } 
 
 
     async def _download_video(
         self, 
-        youtube_video: 
-        AsyncYouTube, 
+        youtube_video: AsyncYouTube, 
         download_directory: Path, 
         filename_prefix: Optional[str] = None
-    ) -> List[VideoDownloadResult]:
+    ) -> VideoDownloadResult:
         should_convert = self.configuration["download_behavior_configuration"]["convert_video_downloads"] 
         custom_file_extension = self.configuration["download_behavior_configuration"]["convert_video_downloads_to"]
         should_skip_existing_files = self.configuration["download_behavior_configuration"]["skip_existing_files"]
-        stream: Optional[Stream] = (await youtube_video.streams()).filter(progressive=True, only_audio=False, only_video=False).desc().first()
+        stream: Optional[Stream] = (
+            (await youtube_video.streams())
+            .filter(progressive=True, only_audio=False, only_video=False)
+            .desc()
+            .first()
+        )
 
         if stream == None:
-            raise NoStreamsFoundError(await youtube_video.title())
+            return {
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+            }
 
         # Early return when not converting to another file format
         if not should_convert:
-            download_path = await self._download_stream(
+            download_result = await self._download_stream(
                 youtube_video,
                 stream,
                 download_directory, 
@@ -222,12 +256,7 @@ class Downloader:
                 filename_prefix
             )
 
-            return [{
-                "success": True,
-                "youtube_video": youtube_video,
-                "download_path": download_path,
-                "error_message": None
-            }]
+            return download_result
         
         ensure_can_use_ffmpeg(
             self.ffmpeg_executable_path, 
@@ -235,29 +264,41 @@ class Downloader:
             "convert_video_downloads_to"
         )
         
-        converted_file_path: Path = resolve_safe_file_path(
-            download_directory, 
-            stream.default_filename, 
-            f"Video ({youtube_video.video_id})", 
-            filename_prefix, 
-            custom_file_extension
-        )
-
-        if converted_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-            return [{
+        try:
+            converted_file_path: Path = resolve_safe_file_path(
+                download_directory, 
+                stream.default_filename, 
+                f"Video ({youtube_video.video_id})", 
+                filename_prefix, 
+                custom_file_extension
+            )
+        except ImpossibleDownloadPath as exception:
+            return {
                 "success": False,
                 "youtube_video": youtube_video,
                 "download_path": None,
-                "error_message": f"Already exists ({download_directory})."
-            }]
+                "error_message": str(exception)
+            }
+
+        if converted_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
+            return {
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=download_directory)
+            }
         
-        temporary_video_path = await self._download_stream(
+        temporary_video_download_result = await self._download_stream(
             youtube_video,
             stream,
             self.temporary_files_directory_path, 
             False,
             filename_prefix
         )
+
+        if temporary_video_download_result["success"] is False:
+            return temporary_video_download_result
+
         conversion_bar = self.progress_bar_factory.conversion(
             f"Converting ({await youtube_video.title()}) to ({custom_file_extension})",
             int(stream.durationMs)
@@ -265,7 +306,7 @@ class Downloader:
 
         await convert_file(
             cast(Path, self.ffmpeg_executable_path), 
-            [ temporary_video_path ], 
+            [ temporary_video_download_result["download_path"] ], 
             [ converted_file_path ],
             [ "y" ],
             conversion_bar.on_progress
@@ -274,12 +315,12 @@ class Downloader:
         conversion_bar.close()
         spaced_print("Conversion was successful!")
 
-        return [{
+        return {
             "success": True,
             "youtube_video": youtube_video,
             "download_path": converted_file_path,
             "error_message": None
-        }]
+        }
     
 
     async def _download_video_only(
@@ -287,17 +328,26 @@ class Downloader:
         youtube_video: AsyncYouTube, 
         download_directory: Path, 
         filename_prefix: Optional[str] = None
-    ) -> List[VideoDownloadResult]:
+    ) -> VideoDownloadResult:
         should_convert = self.configuration["download_behavior_configuration"]["convert_video_only_downloads"] 
         custom_file_extension = self.configuration["download_behavior_configuration"]["convert_video_only_downloads_to"]
-        stream: Optional[Stream] = (await youtube_video.streams()).filter(is_dash=True, only_video=True).first()
+        stream: Optional[Stream] = (
+            (await youtube_video.streams())
+            .filter(is_dash=True, only_video=True)
+            .first()
+        )
 
         if stream == None:
-            raise NoStreamsFoundError(await youtube_video.title())
+            return {
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+            }
 
         # Early return when not converting to another file format
         if not should_convert:
-            download_location = await self._download_stream(
+            download_result = await self._download_stream(
                 youtube_video,
                 stream,
                 download_directory, 
@@ -305,12 +355,7 @@ class Downloader:
                 filename_prefix
             )
 
-            return [{
-                "success": True,
-                "youtube_video": youtube_video,
-                "download_path": download_location,
-                "error_message": None
-            }]
+            return download_result
         
         ensure_can_use_ffmpeg(
             self.ffmpeg_executable_path, 
@@ -318,29 +363,41 @@ class Downloader:
             "convert_video_only_downloads_to"
         )
 
-        converted_file_path: Path = resolve_safe_file_path(
-            download_directory, 
-            stream.default_filename, 
-            f"Video ({youtube_video.video_id})", 
-            filename_prefix, 
-            custom_file_extension
-        )
-
-        if converted_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-            return [{
+        try:
+            converted_file_path: Path = resolve_safe_file_path(
+                download_directory, 
+                stream.default_filename, 
+                f"Video ({youtube_video.video_id})", 
+                filename_prefix, 
+                custom_file_extension
+            )
+        except ImpossibleDownloadPath as exception:
+            return {
                 "success": False,
                 "youtube_video": youtube_video,
                 "download_path": None,
-                "error_message": f"Already exists ({converted_file_path})."
-            }]
+                "error_message": str(exception)
+            }
+    
+        if converted_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
+            return {
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
+            }
 
-        temporary_video_path = await self._download_stream(
+        temporary_video_download_result = await self._download_stream(
             youtube_video,
             stream,
             self.temporary_files_directory_path, 
             False,
             filename_prefix
         )
+
+        if temporary_video_download_result["success"] is False:
+            return temporary_video_download_result
+
         conversion_bar = self.progress_bar_factory.conversion(
             f"Converting ({await youtube_video.title()}) to ({custom_file_extension})",
             int(stream.durationMs)
@@ -348,7 +405,7 @@ class Downloader:
 
         await convert_file(
             cast(Path, self.ffmpeg_executable_path), 
-            [ temporary_video_path ], 
+            [ temporary_video_download_result["download_path"] ], 
             [ converted_file_path ],
             [ "y" ],
             conversion_bar.on_progress
@@ -357,12 +414,12 @@ class Downloader:
         conversion_bar.close()
         spaced_print("Conversion was successful!")
 
-        return [{
+        return {
             "success": True,
             "youtube_video": youtube_video,
             "download_path": converted_file_path,
             "error_message": None
-        }]
+        }
 
 
     async def _download_audio_only(
@@ -370,17 +427,27 @@ class Downloader:
         youtube_video: AsyncYouTube, 
         download_directory: Path, 
         filename_prefix: Optional[str] = None
-    ) -> List[VideoDownloadResult]:
+    ) -> VideoDownloadResult:
         should_convert = self.configuration["download_behavior_configuration"]["convert_audio_only_downloads"] 
         custom_file_extension = self.configuration["download_behavior_configuration"]["convert_audio_only_downloads_to"]
-        stream: Optional[Stream] = (await youtube_video.streams()).filter(is_dash=True, only_audio=True).desc().first()
+        stream: Optional[Stream] = (
+            (await youtube_video.streams())
+            .filter(is_dash=True, only_audio=True)
+            .desc()
+            .first()
+        )
 
         if stream == None:
-            raise NoStreamsFoundError(await youtube_video.title())
+            return {
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+            }
 
         # Early return when not converting to another file format
         if not should_convert:
-            download_location = await self._download_stream(
+            download_result = await self._download_stream(
                 youtube_video,
                 stream,
                 download_directory, 
@@ -388,12 +455,7 @@ class Downloader:
                 filename_prefix
             )
 
-            return [{
-                "success": True,
-                "youtube_video": youtube_video,
-                "download_path": download_location,
-                "error_message": None
-            }]
+            return download_result
 
         ensure_can_use_ffmpeg(
             self.ffmpeg_executable_path, 
@@ -401,29 +463,41 @@ class Downloader:
             "convert_audio_only_downloads_to"
         )
 
-        converted_file_path: Path = resolve_safe_file_path(
-            download_directory, 
-            stream.default_filename, 
-            f"Video ({youtube_video.video_id})", 
-            filename_prefix, 
-            custom_file_extension
-        )
-
-        if converted_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
-            return [{
+        try:
+            converted_file_path: Path = resolve_safe_file_path(
+                download_directory, 
+                stream.default_filename, 
+                f"Video ({youtube_video.video_id})", 
+                filename_prefix, 
+                custom_file_extension
+            )
+        except ImpossibleDownloadPath as exception:
+            return {
                 "success": False,
                 "youtube_video": youtube_video,
                 "download_path": None,
-                "error_message": f"Already exists ({converted_file_path})."
-            }]
+                "error_message": str(exception)
+            }
 
-        temporary_video_path = await self._download_stream(
+        if converted_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
+            return {
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
+            }
+
+        temporary_video_download_result = await self._download_stream(
             youtube_video,
             stream,
             self.temporary_files_directory_path, 
             False,
             filename_prefix
         )
+
+        if temporary_video_download_result["success"] is False:
+            return temporary_video_download_result
+        
         conversion_bar = self.progress_bar_factory.conversion(
             f"Converting ({await youtube_video.title()}) to ({custom_file_extension})",
             int(stream.durationMs)
@@ -431,7 +505,7 @@ class Downloader:
 
         await convert_file(
             cast(Path, self.ffmpeg_executable_path), 
-            [ temporary_video_path ], 
+            [ temporary_video_download_result["download_path"] ], 
             [ converted_file_path ],
             [ "y" ],
             conversion_bar.on_progress
@@ -440,12 +514,12 @@ class Downloader:
         conversion_bar.close()
         spaced_print("Conversion was successful!")
 
-        return [{
+        return {
             "success": True,
             "youtube_video": youtube_video,
             "download_path": converted_file_path,
             "error_message": None
-        }]
+        }
 
 
     async def _download_best_of_both(
@@ -460,37 +534,50 @@ class Downloader:
                 await youtube_video.title(), 
                 f"Video ({youtube_video.video_id})"
             )
-            true_download_directory.mkdir(exist_ok=True)
+            true_download_directory.mkdir(exist_ok=True, parents=True)
 
-            video_only_download_result: List[VideoDownloadResult]
-            audio_only_download_result: List[VideoDownloadResult]
+            video_only_download_result: VideoDownloadResult
+            audio_only_download_result: VideoDownloadResult
 
-            try:
-                video_only_download_result = await self._download_video_only(
-                    youtube_video,
-                    true_download_directory,
-                    "Video-"
-                )
+            video_only_download_result = await self._download_video_only(
+                youtube_video,
+                true_download_directory,
+                "Video-"
+            )
 
-                audio_only_download_result = await self._download_audio_only(
-                    youtube_video,
-                    true_download_directory,
-                    "Audio-"
-                )
-            except ImpossibleDownloadPath:
+            audio_only_download_result = await self._download_audio_only(
+                youtube_video,
+                true_download_directory,
+                "Audio-"
+            )
+
+            # Clean up directory if nothing is downloaded and nothing in contained in it
+            if not video_only_download_result["success"] or not audio_only_download_result["success"]:
                 if not any(true_download_directory.iterdir()):
                     true_download_directory.rmdir()
 
-                raise
-
-            return video_only_download_result + audio_only_download_result
+            return [ video_only_download_result, audio_only_download_result ]
         else:
             custom_file_extension = self.configuration["download_behavior_configuration"]["best_of_both_merged_file_format"]
-            video_stream: Optional[Stream] = (await youtube_video.streams()).filter(is_dash=True, only_video=True).first()
-            audio_stream: Optional[Stream] = (await youtube_video.streams()).filter(is_dash=True, only_audio=True).desc().first()
+            video_stream: Optional[Stream] = (
+                (await youtube_video.streams())
+                .filter(is_dash=True, only_video=True)
+                .first()
+            )
+            audio_stream: Optional[Stream] = (
+                (await youtube_video.streams())
+                .filter(is_dash=True, only_audio=True)
+                .desc()
+                .first()
+            )
 
             if video_stream == None or audio_stream == None:
-                raise NoStreamsFoundError(await youtube_video.title())
+                return [{
+                    "success": False,
+                    "youtube_video": youtube_video,
+                    "download_path": None,
+                    "error_message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+                }]
             
             ensure_can_use_ffmpeg(
                 self.ffmpeg_executable_path, 
@@ -498,23 +585,31 @@ class Downloader:
                 "best_of_both_merged_file_format"
             )
 
-            converted_file_path: Path = resolve_safe_file_path(
-                download_directory, 
-                video_stream.default_filename, 
-                f"Video ({youtube_video.video_id})", 
-                filename_prefix, 
-                custom_file_extension
-            )
+            try:
+                converted_file_path: Path = resolve_safe_file_path(
+                    download_directory, 
+                    video_stream.default_filename, 
+                    f"Video ({youtube_video.video_id})", 
+                    filename_prefix, 
+                    custom_file_extension
+                )
+            except ImpossibleDownloadPath as exception:
+                return [{
+                    "success": False,
+                    "youtube_video": youtube_video,
+                    "download_path": None,
+                    "error_message": str(exception)
+                }]
 
             if converted_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
                 return [{
                     "success": False,
                     "youtube_video": youtube_video,
                     "download_path": None,
-                    "error_message": f"Already exists ({converted_file_path})."
+                    "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
                 }]
 
-            temporary_video_path = await self._download_stream(
+            temporary_video_download_result = await self._download_stream(
                 youtube_video,
                 video_stream,
                 self.temporary_files_directory_path,
@@ -522,13 +617,16 @@ class Downloader:
                 "Video-"
             )
 
-            temporary_audio_path = await self._download_stream(
+            temporary_audio_download_result = await self._download_stream(
                 youtube_video,
                 audio_stream,
                 self.temporary_files_directory_path,
                 False,
                 "Audio-"
             )
+
+            if temporary_video_download_result["success"] is False or temporary_audio_download_result["success"] is False:
+                return [ temporary_video_download_result ]
 
             conversion_bar = self.progress_bar_factory.conversion(
                 f"Converting ({await youtube_video.title()}) to ({custom_file_extension})",
@@ -537,7 +635,7 @@ class Downloader:
 
             await convert_file(
                 cast(Path, self.ffmpeg_executable_path), 
-                [ temporary_video_path, temporary_audio_path ], 
+                [ temporary_video_download_result["download_path"], temporary_audio_download_result["download_path"] ], 
                 [ converted_file_path ],
                 [ "y" ],
                 conversion_bar.on_progress
@@ -567,7 +665,7 @@ class Downloader:
 
         for stream in chosen_streams:
             if not should_convert:
-                download_path = await self._download_stream(
+                download_result = await self._download_stream(
                     youtube_video,
                     stream,
                     download_directory, 
@@ -575,12 +673,7 @@ class Downloader:
                     f"{filename_prefix or ''}{stream.itag}-"
                 )
 
-                results.append({
-                    "success": True,
-                    "youtube_video": youtube_video,
-                    "download_path": download_path,
-                    "error_message": None
-                })
+                results.append(download_result)
 
                 continue
 
@@ -598,28 +691,36 @@ class Downloader:
                     f"{filename_prefix or ''}{stream.itag}-", 
                     custom_file_extension
                 )
-            except ImpossibleDownloadPath:
+            except ImpossibleDownloadPath as exception:
                 if not any(download_directory.iterdir()):
                     download_directory.rmdir()
 
-                raise
+                return [{
+                    "success": False,
+                    "youtube_video": youtube_video,
+                    "download_path": None,
+                    "error_message": str(exception)
+                }]
 
             if converted_file_path.exists() and self.configuration["download_behavior_configuration"]["skip_existing_files"]:
                 results.append({
                     "success": False,
                     "youtube_video": youtube_video,
                     "download_path": None,
-                    "error_message": f"Already exists ({converted_file_path})."
+                    "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
                 })
                 continue
             
-            temporary_video_path = await self._download_stream(
+            temporary_video_download_result = await self._download_stream(
                 youtube_video,
                 stream,
                 self.temporary_files_directory_path,
                 False,
                 filename_prefix=f"{filename_prefix or ''}{stream.itag}-"
             )
+
+            if temporary_video_download_result["success"] is False:
+                return [ temporary_video_download_result ]
 
             conversion_bar = self.progress_bar_factory.conversion(
                 f"Converting ({await youtube_video.title()}) to ({custom_file_extension})",
@@ -628,7 +729,7 @@ class Downloader:
 
             await convert_file(
                 cast(Path, self.ffmpeg_executable_path), 
-                [ temporary_video_path ], 
+                [ temporary_video_download_result["download_path"] ], 
                 [ converted_file_path ],
                 [ "y" ],
                 conversion_bar.on_progress

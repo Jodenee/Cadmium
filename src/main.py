@@ -39,15 +39,15 @@ pick.KEYS_SELECT += (ARROW_KEY_RIGHT, ord("d") )
 pick.KEYS_ENTER += (459, )
 
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from traceback import format_exc as get_traceback
-from pick import Option, pick
+from pick import pick
 from pytubefix.exceptions import BotDetection
 from sys import exit
 
 from core.enums import DownloadFormat, MediaType
 from core.enums.main_menu_option import MainMenuOption
-from core.exceptions import InvalidConfigurationError, ImpossibleDownloadPath
+from core.exceptions import InvalidConfigurationError
 from core.custom_types import Configuration
 from core.lib import Downloader, ProgressBarFactory
 from core.utilities.configuration import load_configuration, create_configuration_file
@@ -72,7 +72,7 @@ async def main() -> None:
     ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration)
 
     # ensure required files exist
-    TEMPORARY_FILES_DIRECTORY_PATH.mkdir(exist_ok=True)
+    TEMPORARY_FILES_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
     TO_DOWNLOAD_FILE_PATH.touch()
 
     # initialise objects
@@ -119,12 +119,7 @@ async def main() -> None:
 
             download_directory: Path
 
-            if not use_download_location_override:
-                DOWNLOADS_DIRECTORY_PATH.mkdir(exist_ok=True)
-                default_download_location.mkdir(exist_ok=True)
-
-                download_directory = default_download_location
-            else:
+            if use_download_location_override:
                 if (download_location_override == None):
                     raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "is empty")
                 elif (not download_location_override.exists()):
@@ -133,6 +128,11 @@ async def main() -> None:
                     raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "is a file")
                 
                 download_directory = download_location_override
+            else:
+                DOWNLOADS_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
+                default_download_location.mkdir(exist_ok=True, parents=True)
+
+                download_directory = default_download_location
 
             urls: List[str]
 
@@ -150,14 +150,19 @@ async def main() -> None:
             print("Downloading videos...")
 
             for url in urls:
-                mediaType = parse_youtube_link_type(url)
-                spaced_print(f"Now downloading {mediaType.value} ({url})")  
+                parse_result = parse_youtube_link_type(url)
 
-                if mediaType == MediaType.VIDEO:
+                if parse_result.success is False:
+                    spaced_print(f"Skipping ({url}) as it could not be parsed...")
+                    continue
+
+                spaced_print(f"Now downloading {parse_result.mediaType.value} ({url})")  
+
+                if parse_result.mediaType == MediaType.VIDEO:
                     results = await downloader.download_video(url, download_format, download_directory)
 
                     await display_video_download_result(results)
-                elif mediaType == MediaType.PLAYLIST:
+                elif parse_result.mediaType == MediaType.PLAYLIST:
                     result = await downloader.download_playlist(url, download_format, download_directory)
 
                     await display_collection_download_result(result)
@@ -190,7 +195,7 @@ if __name__ == "__main__":
         asyncio.run(main())
     except BotDetection:
         spaced_print("Cadmium was detected as a bot, please refrain from downloading more videos for a while to prevent getting limited or blocked.")
-    except (InvalidConfigurationError, ImpossibleDownloadPath) as exception:
+    except InvalidConfigurationError as exception:
         spaced_print(f"Fatal Error: {exception}")
     except KeyboardInterrupt:
         exit(0)
