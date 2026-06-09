@@ -30,6 +30,8 @@ class ConversionProgressBar:
         logger.debug("conversion progress total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)
 
     def close(self):
+        self._progress_bar.n = self._progress_bar.total
+        self._progress_bar.refresh()
         self._progress_bar.close()
 
         logger.debug("closed conversion progress bar total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)
