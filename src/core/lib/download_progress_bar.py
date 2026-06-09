@@ -1,8 +1,13 @@
+import logging
+
 from pytubefix.async_youtube import AsyncYouTube, Stream
 from tqdm.asyncio import tqdm
 
-from core.custom_types.configuration import Configuration
+from ..custom_types.configuration import Configuration
 from ..enums import Colours
+from ..utilities.constants import APPLICATION_LOGGER_NAME
+
+logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 class DownloadProgressBar:
     def __init__(self, description: str, stream_size_in_bytes: int, youtube_video: AsyncYouTube, configuration: Configuration) -> None:
@@ -20,6 +25,7 @@ class DownloadProgressBar:
         )
 
         youtube_video.register_on_progress_callback(self.on_progress)
+        logger.debug("initialise download progress bar total=%s", stream_size_in_bytes)
 
     def on_progress(self, stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
         total_file_size: int = stream.filesize
@@ -28,5 +34,8 @@ class DownloadProgressBar:
         self._progress_bar.n = total_bytes_downloaded
         self._progress_bar.refresh()
 
+        logger.debug("download progress total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)
+
     def close(self):
         self._progress_bar.close()
+        logger.debug("closed download progress bar total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)

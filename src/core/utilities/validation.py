@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Optional
 
-from core.exceptions.invalid_configuration_error import InvalidConfigurationError
+from ..exceptions.invalid_configuration_error import InvalidConfigurationError
 
 def ensure_can_use_ffmpeg(
     ffmpeg_executable_path: Optional[Path], 

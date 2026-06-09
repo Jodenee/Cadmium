@@ -26,6 +26,7 @@ __version__ = "1.0.0"
 
 import asyncio
 import pick
+import logging
 
 # configure custom keybinds
 
@@ -40,10 +41,10 @@ pick.KEYS_ENTER += (459, )
 
 from pathlib import Path
 from typing import List, Optional
-from traceback import format_exc as get_traceback
 from pick import pick
 from pytubefix.exceptions import BotDetection
 from sys import exit
+from logging.handlers import RotatingFileHandler
 
 from core.enums import DownloadFormat, MediaType
 from core.enums.main_menu_option import MainMenuOption
@@ -52,10 +53,12 @@ from core.custom_types import Configuration
 from core.lib import Downloader, ProgressBarFactory
 from core.utilities.configuration import load_configuration, create_configuration_file
 from core.utilities.console import display_collection_download_result, display_video_download_result, spaced_print
-from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg
+from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg, OPERATING_SYSTEM, CPU_ARCHITECTURE
 from core.utilities.parse import parse_youtube_link_type
 from core.utilities.constants import CONFIGURATION_FILE_PATH, DEFAULT_DOWNLOAD_LOCATIONS_MAP, DOWNLOAD_FORMAT_MENU_OPTIONS, DOWNLOADS_DIRECTORY_PATH, MAIN_MENU_OPTIONS, SELECT_MENU_INDICATOR, \
-    TEMPORARY_FILE_EXTENSIONS, TEMPORARY_FILES_DIRECTORY_PATH, TO_DOWNLOAD_FILE_PATH
+    TEMPORARY_FILE_EXTENSIONS, TEMPORARY_FILES_DIRECTORY_PATH, TO_DOWNLOAD_FILE_PATH, LOGGING_DIRECTORY_PATH, APPLICATION_LOGGER_NAME
+
+logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 # constant values
 
@@ -64,18 +67,55 @@ progress_bar_factory = ProgressBarFactory(configuration)
 
 # Program
 
-async def main() -> None:
+def bootstrap() -> None:
+    # Create configuration file if it does not exist
     if not CONFIGURATION_FILE_PATH.exists(): 
         create_configuration_file(CONFIGURATION_FILE_PATH)
 
-    # find external dependencies
+    # Configure application logging
+    global_logger = logging.getLogger()
+
+    global_logger.handlers.clear()
+
+    global_logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    )
+
+    if configuration["logging_configuration"]["enabled"]:
+        LOGGING_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
+
+        handler = RotatingFileHandler(
+            LOGGING_DIRECTORY_PATH / "cadmium.log",
+            maxBytes=5 * 1024 * 1024, # 5MB
+            backupCount=3,
+            encoding="utf-8"
+        )
+    else: 
+        handler = logging.NullHandler()
+
+    handler.setFormatter(formatter)
+    global_logger.addHandler(handler)
+
+
+async def main() -> None:
+    bootstrap()
+
+    logger = logging.getLogger(APPLICATION_LOGGER_NAME)
+
+    logger.info("running Cadmium v%s", __version__)
+    logger.debug("OPERATING_SYSTEM=%s CPU_ARCHITECTURE=%s", OPERATING_SYSTEM.name, CPU_ARCHITECTURE.name)
+
+    # Find external dependencies
     ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration)
 
-    # ensure required files exist
+    # Ensure required directories and files exist
     TEMPORARY_FILES_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
     TO_DOWNLOAD_FILE_PATH.touch()
 
-    # initialise objects
+    # Initialise objects
     downloader: Downloader = Downloader(
         configuration, 
         progress_bar_factory, 
@@ -83,6 +123,7 @@ async def main() -> None:
         ffmpeg_executable_path
     )
 
+    # Warn user if temporary files exist
     if not configuration["warning_configuration"]["silence_existing_temporary_files_warning"]:
         number_of_existing_temp_files: int = count_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS)
 
@@ -94,11 +135,15 @@ async def main() -> None:
             )
 
     while True:
+        logger.info("Visited main menu")
+
         main_menu_option: MainMenuOption = pick(
             MAIN_MENU_OPTIONS, 
             f"Cadmium - v{__version__} (https://github.com/Jodenee/Cadmium)", 
             indicator=SELECT_MENU_INDICATOR
         )[0].value # type: ignore
+
+        logger.debug("main_menu_option=%s", main_menu_option.name)
 
         if main_menu_option == MainMenuOption.DOWNLOAD:
             download_format: DownloadFormat = pick(
@@ -106,6 +151,8 @@ async def main() -> None:
                 "Which format should the videos be downloaded as", 
                 indicator=SELECT_MENU_INDICATOR
             )[0].value # type: ignore
+
+            logger.debug("download_format=%s", download_format.name)
 
             if download_format == "back":
                 continue
@@ -116,6 +163,8 @@ async def main() -> None:
             use_download_location_override = download_location_override_configuration[f"use_{download_format_str}_download_location_override"]
             download_location_override = download_location_override_configuration[f"{download_format_str}_download_location_override"]
             default_download_location = DEFAULT_DOWNLOAD_LOCATIONS_MAP[download_format]
+
+            logger.debug("use_download_location_override=%s", use_download_location_override)
 
             download_directory: Path
 
@@ -134,10 +183,14 @@ async def main() -> None:
 
                 download_directory = default_download_location
 
+            logger.debug("download_directory=%s", download_directory)
+
             urls: List[str]
 
             with TO_DOWNLOAD_FILE_PATH.open("r") as file:
                 urls = [ line.removesuffix("\n") for line in file.readlines() if not line.isspace() ]
+
+            logger.debug("urls=%s", urls)
 
             if len(urls) <= 0:
                 pick(
@@ -174,9 +227,11 @@ async def main() -> None:
             input("\nDownloading complete! (Press enter to continue) ")
             clear_console()
         elif main_menu_option == MainMenuOption.EXIT:
+            logger.debug("clear_temporary_files_before_exiting=%s", configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"])
+
             if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
                 total_files_to_remove = count_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS)
-
+                
                 if total_files_to_remove > 0:
                     clear_directory_progress_bar = progress_bar_factory.clear_directory(
                         f"Clearing ({TEMPORARY_FILES_DIRECTORY_PATH})", 
@@ -186,6 +241,7 @@ async def main() -> None:
                     clear_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS, clear_directory_progress_bar.on_progress)
 
                     clear_directory_progress_bar.close()
+                    logger.info("cleared %s files from %s", total_files_to_remove, TEMPORARY_FILES_DIRECTORY_PATH)
             
             break
 
@@ -194,16 +250,19 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except BotDetection:
+        logger.warning("detected as a bot by YouTube")
         spaced_print("Cadmium was detected as a bot, please refrain from downloading more videos for a while to prevent getting limited or blocked.")
     except InvalidConfigurationError as exception:
+        logger.exception("Cadmium ran into a fatal exception")
         spaced_print(f"Fatal Error: {exception}")
     except KeyboardInterrupt:
         exit(0)
-    except BaseException as exception:
+    except BaseException:
+        logger.exception("Cadmium ran into an unexpected exception")
         spaced_print(
-            f"Fatal Error: Unexpected error was raised. Please make an issue on the GitHub with the following error.\n\n"
-            f"{exception.__class__.__name__}: {exception}\n"
-            f"Full Traceback:\n{get_traceback()}"
+            f"Fatal Error: Cadmium ran into an unexpected error." 
+            "\n\nDear user,\nApologies for the inconvenience, If you would like to see this problem fixed please consider going to Cadmium's reporting page (https://github.com/Jodenee/Cadmium/issues/new?template=bug_report.md) and creating a report by following the steps shown in the template. " 
+            "Thank you"
         )
     else:
         exit(0)

@@ -1,8 +1,12 @@
+import logging
+
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple, Union
 from ffmpeg.asyncio import FFmpeg
 from ffmpeg import Progress
+from .constants import APPLICATION_LOGGER_NAME
 
+logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 async def convert_file(
     ffmpeg_executable_path: Union[str, Path], 
@@ -38,6 +42,10 @@ async def convert_file(
 
     if progress_callback:
         ffmpeg.on("progress", progress_callback)
+
+    logger.debug("input_file_paths=%s", input_file_paths)
+    logger.debug("output_file_paths=%s", output_file_paths)
+    logger.debug("options=%s", options)
 
     try:
         await ffmpeg.execute()

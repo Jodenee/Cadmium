@@ -8,6 +8,7 @@
 # Ignore folders
 downloads
 temporary_files
+logs
 
 # Ignore download text file
 to_download.txt

@@ -1,4 +1,5 @@
 import sys
+import logging
 
 from typing import Dict, List, Tuple
 from re import compile as compile_regex
@@ -65,6 +66,9 @@ DEFAULT_CONFIGURATION: Configuration = {
             "use_path_ffmpeg": False,
             "custom_ffmpeg_executable_path": ""
         }
+    },
+    "logging_configuration": {
+        "enabled": True
     }
 }
 
@@ -73,25 +77,26 @@ DEFAULT_CONFIGURATION: Configuration = {
 if getattr(sys, "frozen", False):
     # If run as an exe
     PROJECT_ROOT_DIRECTORY: Path = Path(sys.executable).parent.resolve()
-    BINARIES_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY.joinpath("_internal", "core", "bin")
+    BINARIES_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "_internal" / "core" / "bin"
 else:
     # if run with python interpreter
     PROJECT_ROOT_DIRECTORY: Path = Path(__file__).parents[2].resolve() 
-    BINARIES_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY.joinpath("core", "bin")
+    BINARIES_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "core" / "bin"
 
-PACKAGED_FFMPEG_BINARIES_DIRECTORY_PATH: Path = BINARIES_DIRECTORY_PATH.joinpath("ffmpeg")
+PACKAGED_FFMPEG_BINARIES_DIRECTORY_PATH: Path = BINARIES_DIRECTORY_PATH / "ffmpeg"
 
-TO_DOWNLOAD_FILE_PATH: Path = PROJECT_ROOT_DIRECTORY.joinpath("to_download.txt")
-CONFIGURATION_FILE_PATH: Path = PROJECT_ROOT_DIRECTORY.joinpath("configuration.json")
-TEMPORARY_FILES_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY.joinpath("temporary_files")
-DOWNLOADS_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY.joinpath("downloads")
+TO_DOWNLOAD_FILE_PATH: Path = PROJECT_ROOT_DIRECTORY / "to_download.txt"
+CONFIGURATION_FILE_PATH: Path = PROJECT_ROOT_DIRECTORY / "configuration.json"
+TEMPORARY_FILES_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "temporary_files"
+DOWNLOADS_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "downloads"
+LOGGING_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "logs"
 
 DEFAULT_DOWNLOAD_LOCATIONS_MAP: Dict[DownloadFormat, Path] = {
-    DownloadFormat.VIDEO: DOWNLOADS_DIRECTORY_PATH.joinpath("video"),
-    DownloadFormat.VIDEO_ONLY: DOWNLOADS_DIRECTORY_PATH.joinpath("video_only"),
-    DownloadFormat.AUDIO_ONLY: DOWNLOADS_DIRECTORY_PATH.joinpath("audio_only"),
-    DownloadFormat.BEST_OF_BOTH: DOWNLOADS_DIRECTORY_PATH.joinpath("best_of_both"),
-    DownloadFormat.CUSTOM: DOWNLOADS_DIRECTORY_PATH.joinpath("custom")
+    DownloadFormat.VIDEO: DOWNLOADS_DIRECTORY_PATH / "video",
+    DownloadFormat.VIDEO_ONLY: DOWNLOADS_DIRECTORY_PATH / "video_only",
+    DownloadFormat.AUDIO_ONLY: DOWNLOADS_DIRECTORY_PATH / "audio_only",
+    DownloadFormat.BEST_OF_BOTH: DOWNLOADS_DIRECTORY_PATH / "best_of_both",
+    DownloadFormat.CUSTOM: DOWNLOADS_DIRECTORY_PATH / "custom"
 }
 
 # Menu options
@@ -163,3 +168,6 @@ ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE = "Already exists at ({path})."
 # Miscellaneous regexes
 MATCH_NOTHING = compile_regex(r"")
 MATCH_CONSECUTIVE_SPACES = compile_regex(r"\s+")
+
+# Logging
+APPLICATION_LOGGER_NAME = "cadmium"

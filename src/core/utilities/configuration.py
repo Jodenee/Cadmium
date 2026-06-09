@@ -1,9 +1,13 @@
+import logging
+
 from pathlib import Path
 from typing import Optional
 from json import load as json_load, dumps as json_dumps
 
 from ..custom_types import Configuration
-from .constants import DEFAULT_CONFIGURATION
+from .constants import DEFAULT_CONFIGURATION, APPLICATION_LOGGER_NAME
+
+logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 # Functions
 
@@ -38,6 +42,7 @@ def load_configuration(configuration_file_path: Path) -> Configuration:
     """
 
     if not configuration_file_path.is_file():
+        logger.info("configuration file not found at %s using default configuration instead", configuration_file_path)
         return DEFAULT_CONFIGURATION
 
     try:
@@ -46,4 +51,5 @@ def load_configuration(configuration_file_path: Path) -> Configuration:
 
         return json_data
     except BaseException:
+        logger.exception("configuration file at %s could not be parsed returning default configuration", configuration_file_path)
         return DEFAULT_CONFIGURATION

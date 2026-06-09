@@ -1,11 +1,15 @@
+import logging
+
 from typing import Callable, List, Optional, Tuple, Union, cast
 from pick import Option, pick
 from pytubefix.async_youtube import Stream, StreamQuery
 
 from core.custom_types.collection_download_result import CollectionDownloadResult
 from core.custom_types.video_download_result import VideoDownloadResult
-from core.utilities.constants import SELECT_MENU_INDICATOR
+from core.utilities.constants import SELECT_MENU_INDICATOR, APPLICATION_LOGGER_NAME
 from core.utilities.pytubefix_extensions import stream_repr
+
+logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 # Functions
 
@@ -107,5 +111,8 @@ def pick_from_streams(streams: StreamQuery, label_generator: Optional[Callable[[
         multiselect=True,
         min_selection_count=1
     ))
+    picked_streams = cast(List[Stream], [ picked_option[0].value for picked_option in stream_pick_menu ])
 
-    return cast(List[Stream], [ picked_option[0].value for picked_option in stream_pick_menu ])
+    logger.info("picked stream itags %s", list(map(lambda s: s.itag, picked_streams)))
+
+    return picked_streams
