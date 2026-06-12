@@ -1,4 +1,5 @@
-from pytubefix import YouTube, Stream, Channel
+from typing import cast
+from pytubefix import AsyncYouTube, YouTube, Stream
 
 def stream_repr(stream: Stream) -> str:
     """Produces a user friendly description of a stream. 
@@ -28,3 +29,11 @@ def stream_repr(stream: Stream) -> str:
 
     return information_text
 
+
+def get_youtube_from_stream(stream: Stream) -> YouTube | AsyncYouTube:
+    youtube = stream._monostate.youtube
+
+    if isinstance(youtube, YouTube):
+        return cast(YouTube, youtube)
+    else: 
+        return cast(AsyncYouTube, youtube)
