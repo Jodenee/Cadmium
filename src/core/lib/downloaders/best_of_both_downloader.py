@@ -14,6 +14,8 @@ from ...utilities.console import spaced_print
 from ...utilities.file_conversion import convert_file
 from ...utilities.os import resolve_safe_file_path, safe_join_directory
 
+from ..downloaders import VideoOnlyDownloader, AudioOnlyDownloader
+
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
@@ -21,11 +23,15 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         self, 
         configuration: Configuration, 
         progress_bar_factory: ProgressBarFactory,
+        video_only_downloader: VideoOnlyDownloader,
+        audio_only_downloader: AudioOnlyDownloader,
         ffmpeg_executable_path: Optional[Path] = None
     ) -> None:
         self._configuration = configuration
         self._progress_bar_factory = progress_bar_factory
         self._ffmpeg_executable_path = ffmpeg_executable_path
+        self._video_only_downloader = video_only_downloader
+        self._audio_only_downloader = audio_only_downloader
 
     async def download(
         self, 
@@ -62,16 +68,16 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         video_only_download_result: VideoDownloadResult
         audio_only_download_result: VideoDownloadResult
 
-        video_only_download_result = await self._download_video_only(
+        video_only_download_result = await self._video_only_downloader.download(
             youtube_video,
             true_download_directory,
-            f"Video-{filename_prefix}"
+            f"{filename_prefix or ""}Video-"
         )
 
-        audio_only_download_result = await self._download_audio_only(
+        audio_only_download_result = await self._audio_only_downloader.download(
             youtube_video,
             true_download_directory,
-            f"Audio-{filename_prefix}"
+            f"{filename_prefix or ""}Audio-"
         )
 
         # Clean up directory if nothing is downloaded
