@@ -175,7 +175,7 @@ async def main() -> None:
                     raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "does not exist")      
                 elif (download_location_override.is_file()):
                     raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "is a file")
-                
+
                 download_directory = download_location_override
             else:
                 DOWNLOADS_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
@@ -231,7 +231,7 @@ async def main() -> None:
 
             if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
                 total_files_to_remove = count_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS)
-                
+
                 if total_files_to_remove > 0:
                     clear_directory_progress_bar = progress_bar_factory.clear_directory(
                         f"Clearing ({TEMPORARY_FILES_DIRECTORY_PATH})", 
@@ -242,7 +242,7 @@ async def main() -> None:
 
                     clear_directory_progress_bar.close()
                     logger.info("cleared %s files from %s", total_files_to_remove, TEMPORARY_FILES_DIRECTORY_PATH)
-            
+
             break
 
 
