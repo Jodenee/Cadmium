@@ -3,3 +3,4 @@ from .conversion_progress_bar import ConversionProgressBar
 from .clear_directory_progress_bar import ClearDirectoryProgressBar
 from .factories import ProgressBarFactory
 from .downloader import Downloader
+from .downloaders.video_downloader import VideoDownloader

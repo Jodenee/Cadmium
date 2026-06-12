@@ -3,7 +3,7 @@ import logging
 from pytubefix.async_youtube import AsyncYouTube
 from pytubefix import Playlist, Stream, StreamQuery, Channel
 from pathlib import Path
-from typing import List, Optional, cast
+from typing import Optional, cast
 
 from ..custom_types.collection_download_result import CollectionDownloadResult
 from ..utilities.constants import ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE, APPLICATION_LOGGER_NAME
@@ -13,7 +13,9 @@ from ..utilities.console import pick_from_streams, spaced_print
 from ..utilities.os import resolve_safe_file_path, safe_join_directory
 from ..utilities.pytubefix_extensions import stream_repr
 
-from ..lib import ProgressBarFactory
+from .factories import ProgressBarFactory
+from .protocols import VideoDownloaderProtocol
+from .downloaders import VideoDownloader, VideoOnlyDownloader, AudioOnlyDownloader, BestOfBothDownloader, CustomDownloader
 from ..custom_types import Configuration, VideoDownloadResult
 from ..enums import DownloadFormat
 from ..exceptions import ImpossibleDownloadPath
@@ -32,6 +34,33 @@ class Downloader:
         self.progress_bar_factory = progress_bar_factory
         self.temporary_files_directory_path = temporary_files_directory_path
         self.ffmpeg_executable_path = ffmpeg_executable_path
+        self.downloaders: dict[DownloadFormat, VideoDownloaderProtocol[VideoDownloadResult] | VideoDownloaderProtocol[list[VideoDownloadResult]]] = {
+            DownloadFormat.VIDEO: VideoDownloader(
+                self.configuration,
+                self.progress_bar_factory,
+                self.ffmpeg_executable_path
+            ),
+            DownloadFormat.VIDEO_ONLY: VideoOnlyDownloader(
+                self.configuration,
+                self.progress_bar_factory,
+                self.ffmpeg_executable_path
+            ),
+            DownloadFormat.AUDIO_ONLY: AudioOnlyDownloader(
+                self.configuration,
+                self.progress_bar_factory,
+                self.ffmpeg_executable_path
+            ),
+            DownloadFormat.BEST_OF_BOTH: BestOfBothDownloader(
+                self.configuration,
+                self.progress_bar_factory,
+                self.ffmpeg_executable_path
+            ),
+            DownloadFormat.CUSTOM: CustomDownloader(
+                self.configuration,
+                self.progress_bar_factory,
+                self.ffmpeg_executable_path
+            )
+        }
 
 
     async def download_video(
@@ -40,12 +69,12 @@ class Downloader:
         download_format: DownloadFormat, 
         download_directory: Path, 
         filename_prefix: Optional[str] = None
-    ) -> List[VideoDownloadResult]:
+    ) -> list[VideoDownloadResult]:
         logger.debug("downloading_video video_url=%s download_format=%s", youtube_video_url, download_format)
 
         youtube_video: AsyncYouTube = AsyncYouTube(youtube_video_url)
         streams: StreamQuery = await youtube_video.streams()
-        download_results: List[VideoDownloadResult] = []
+        download_results: list[VideoDownloadResult] = []
 
         if len(streams) == 0: 
             logger.debug("downloading_video url=%s cancelled due to have no streams available", youtube_video_url)
@@ -56,8 +85,18 @@ class Downloader:
                 "download_path": None,
                 "error_message": f"Video ({await youtube_video.title()}) doesn't have any available streams."
             }]
+        
+        result: VideoDownloadResult | list[VideoDownloadResult] = ( 
+            await self.downloaders[download_format]
+                .download(youtube_video, download_directory, filename_prefix)
+        )
 
-        if download_format == DownloadFormat.VIDEO:
+        if isinstance(result, list):
+            download_results = result
+        else: 
+            download_results.append(result)
+
+        """if download_format == DownloadFormat.VIDEO:
             video_download_result = await self._download_video(youtube_video, download_directory, filename_prefix)
 
             download_results.append(video_download_result)
@@ -72,7 +111,7 @@ class Downloader:
         elif download_format == DownloadFormat.BEST_OF_BOTH:
             download_results = await self._download_best_of_both(youtube_video, download_directory, filename_prefix)
         elif download_format == DownloadFormat.CUSTOM:
-            chosen_streams: List[Stream] = pick_from_streams(streams)
+            chosen_streams: list[Stream] = pick_from_streams(streams)
 
             logger.debug("put_custom_streams_in_folder=%s", self.configuration["quality_of_life_configuration"]["put_custom_streams_in_folder"])
 
@@ -85,7 +124,7 @@ class Downloader:
 
                 download_directory.mkdir(exist_ok=True, parents=True)
 
-            download_results = await self._download_custom(youtube_video, chosen_streams, download_directory, filename_prefix)
+            download_results = await self._download_custom(youtube_video, chosen_streams, download_directory, filename_prefix)"""
 
         for download_result in download_results:
             if download_result["success"] is True:
@@ -100,8 +139,6 @@ class Downloader:
                     download_result["youtube_video"].video_id, 
                     download_result["error_message"]
                 )
-
-        logger.info("finished downloading video %s", youtube_video_url)
 
         return download_results
 
@@ -125,7 +162,7 @@ class Downloader:
 
         logger.debug("true_download_directory=%s", true_download_directory)
 
-        failed_downloads: List[VideoDownloadResult] = []
+        failed_downloads: list[VideoDownloadResult] = []
 
         for video_url in playlist.url_generator():
             results = await self.download_video(
@@ -168,7 +205,7 @@ class Downloader:
 
         logger.debug("true_download_directory=%s", true_download_directory)
 
-        failed_downloads: List[VideoDownloadResult] = []
+        failed_downloads: list[VideoDownloadResult] = []
 
         for video_url in channel.video_urls:
             results = await self.download_video(
@@ -273,7 +310,7 @@ class Downloader:
         } 
 
 
-    async def _download_video(
+    """async def _download_video(
         self, 
         youtube_video: AsyncYouTube, 
         download_directory: Path, 
@@ -615,7 +652,7 @@ class Downloader:
         youtube_video: AsyncYouTube, 
         download_directory: Path, 
         filename_prefix: Optional[str] = None
-    ) -> List[VideoDownloadResult]:   
+    ) -> list[VideoDownloadResult]:   
         logger.debug("merge_best_of_both_downloads_into_one_file=%s", self.configuration["download_behavior_configuration"]["merge_best_of_both_downloads_into_one_file"])
 
         if not self.configuration["download_behavior_configuration"]["merge_best_of_both_downloads_into_one_file"]:
@@ -759,14 +796,14 @@ class Downloader:
     async def _download_custom(
         self, 
         youtube_video: AsyncYouTube, 
-        chosen_streams: List[Stream], 
+        chosen_streams: list[Stream], 
         download_directory: Path, 
         filename_prefix: Optional[str] = None
-    ) -> List[VideoDownloadResult]:
+    ) -> list[VideoDownloadResult]:
         should_convert = self.configuration["download_behavior_configuration"]["convert_custom_downloads"] 
         custom_file_extension = self.configuration["download_behavior_configuration"]["convert_custom_downloads_to"]
         should_skip_existing_files = self.configuration["download_behavior_configuration"]["skip_existing_files"]
-        results: List[VideoDownloadResult] = []
+        results: list[VideoDownloadResult] = []
 
         logger.debug("should_convert=%s should_skip_existing_files=%s", should_convert, should_skip_existing_files)
 
@@ -862,4 +899,4 @@ class Downloader:
                 "error_message": None
             })
 
-        return results
+        return results"""
