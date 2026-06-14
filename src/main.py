@@ -227,22 +227,6 @@ async def main() -> None:
             input("\nDownloading complete! (Press enter to continue) ")
             clear_console()
         elif main_menu_option == MainMenuOption.EXIT:
-            logger.debug("clear_temporary_files_before_exiting=%s", configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"])
-
-            if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
-                total_files_to_remove = count_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS)
-
-                if total_files_to_remove > 0:
-                    clear_directory_progress_bar = progress_bar_factory.clear_directory(
-                        f"Clearing ({TEMPORARY_FILES_DIRECTORY_PATH})", 
-                        total_files_to_remove
-                    )
-
-                    clear_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS, clear_directory_progress_bar.on_progress)
-
-                    clear_directory_progress_bar.close()
-                    logger.info("cleared %s files from %s", total_files_to_remove, TEMPORARY_FILES_DIRECTORY_PATH)
-
             break
 
 

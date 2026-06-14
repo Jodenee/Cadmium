@@ -36,6 +36,8 @@ class AudioOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
         should_convert = self._configuration["download_behavior_configuration"]["convert_audio_only_downloads"] 
         custom_file_extension = self._configuration["download_behavior_configuration"]["convert_audio_only_downloads_to"]
         should_skip_existing_Files = self._configuration["download_behavior_configuration"]["skip_existing_files"]
+        delete_temporary_files = self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
+        
         stream: Optional[Stream] = (
             (await youtube_video.streams())
             .filter(is_dash=True, only_audio=True)
@@ -124,7 +126,15 @@ class AudioOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
         )
 
         conversion_bar.close()
-        spaced_print("Conversion was successful!")
+        spaced_print("Conversion was successful.")
+
+        logger.debug("delete_temporary_files=%s", delete_temporary_files)
+
+        if delete_temporary_files:
+            logger.debug("removing temporary file path=%s video_id=%s", temporary_video_download_result["download_path"], youtube_video.video_id)
+            temporary_video_download_result["download_path"].unlink()
+
+            spaced_print("Temporary files cleared successfully.")
 
         return {
             "success": True,

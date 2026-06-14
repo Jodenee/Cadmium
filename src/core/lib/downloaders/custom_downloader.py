@@ -69,6 +69,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         should_convert = self._configuration["download_behavior_configuration"]["convert_custom_downloads"] 
         custom_file_extension = self._configuration["download_behavior_configuration"]["convert_custom_downloads_to"]
         should_skip_existing_files = self._configuration["download_behavior_configuration"]["skip_existing_files"]
+        delete_temporary_files = self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
 
         youtube_video = cast(AsyncYouTube, get_youtube_from_stream(stream))
 
@@ -150,7 +151,15 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         )
 
         conversion_bar.close()
-        spaced_print("Conversion was successful!") 
+        spaced_print("Conversion was successful.")
+
+        logger.debug("delete_temporary_files=%s", delete_temporary_files)
+
+        if delete_temporary_files:
+            logger.debug("removing temporary file path=%s video_id=%s", temporary_video_download_result["download_path"], youtube_video.video_id)
+            temporary_video_download_result["download_path"].unlink()
+
+            spaced_print("Temporary files cleared successfully.")
 
         return {
             "success": True,

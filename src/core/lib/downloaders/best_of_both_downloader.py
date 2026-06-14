@@ -5,16 +5,15 @@ from pathlib import Path
 from pytubefix import AsyncYouTube, Stream
 
 from ..protocols import VideoDownloaderProtocol
-from ...custom_types import VideoDownloadResult, Configuration
 from ..factories import ProgressBarFactory
+from ..downloaders import VideoOnlyDownloader, AudioOnlyDownloader
+from ...custom_types import VideoDownloadResult, Configuration
 from ...exceptions import ImpossibleDownloadPath
 from ...utilities.constants import ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, APPLICATION_LOGGER_NAME, UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, TEMPORARY_FILES_DIRECTORY_PATH
 from ...utilities.validation import ensure_can_use_ffmpeg
 from ...utilities.console import spaced_print
 from ...utilities.file_conversion import convert_file
 from ...utilities.os import resolve_safe_file_path, safe_join_directory
-
-from ..downloaders import VideoOnlyDownloader, AudioOnlyDownloader
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
@@ -40,7 +39,8 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         filename_prefix: Optional[str] = None
     ) -> list[VideoDownloadResult]:
         merge_download = self._configuration["download_behavior_configuration"]["merge_best_of_both_downloads_into_one_file"]
-        logger.debug("merge_best_of_both_downloads_into_one_file=%s", self._configuration["download_behavior_configuration"]["merge_best_of_both_downloads_into_one_file"])
+
+        logger.debug("merge_download=%s", self._configuration["download_behavior_configuration"]["merge_best_of_both_downloads_into_one_file"])
 
         if merge_download:
             return await self._download_merged(youtube_video, download_directory, filename_prefix) 
@@ -95,6 +95,8 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
     ) -> list[VideoDownloadResult]:
         custom_file_extension = self._configuration["download_behavior_configuration"]["best_of_both_merged_file_format"]
         should_skip_existing_files = self._configuration["download_behavior_configuration"]["skip_existing_files"]
+        delete_temporary_files = self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
+
         video_stream: Optional[Stream] = (
             (await youtube_video.streams())
             .filter(is_dash=True, only_video=True)
@@ -192,7 +194,16 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         )
 
         conversion_bar.close()
-        spaced_print("Conversion was successful!")
+        spaced_print("Conversion was successful.")
+
+        if delete_temporary_files:
+            logger.debug("removing temporary file path=%s video_id=%s", temporary_video_download_result["download_path"], youtube_video.video_id)
+            logger.debug("removing temporary file path=%s video_id=%s", temporary_audio_download_result["download_path"], youtube_video.video_id)
+            
+            temporary_video_download_result["download_path"].unlink()
+            temporary_audio_download_result["download_path"].unlink()
+
+            spaced_print("Temporary files cleared successfully.")
 
         return [{
             "success": True,

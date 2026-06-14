@@ -18,6 +18,7 @@ SELECT_MENU_INDICATOR: str = ">"
 DEFAULT_CONFIGURATION: Configuration = {
     "download_behavior_configuration": {
         "skip_existing_files": True,
+        "automatically_delete_temporary_files_after_download": True,
 
         "convert_video_downloads": False,
         "convert_video_only_downloads": False,
@@ -48,8 +49,7 @@ DEFAULT_CONFIGURATION: Configuration = {
         "put_playlist_videos_in_folder": True,
         "put_channel_videos_in_folder": True,
         "put_custom_streams_in_folder": True,
-        "display_chosen_stream_on_start_of_download": True,
-        "clear_temporary_files_before_exiting": False
+        "display_chosen_stream_on_start_of_download": True
     },
     "warning_configuration": {
         "silence_existing_temporary_files_warning": False,
