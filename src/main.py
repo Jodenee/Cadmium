@@ -89,7 +89,7 @@ def bootstrap() -> None:
 
         handler = RotatingFileHandler(
             LOGGING_DIRECTORY_PATH / "cadmium.log",
-            maxBytes=5 * 1024 * 1024, # 5MB
+            maxBytes=2 * 1024 * 1024, # 2MB
             backupCount=3,
             encoding="utf-8"
         )
@@ -135,7 +135,7 @@ async def main() -> None:
             )
 
     while True:
-        logger.info("Visited main menu")
+        logger.info("viewing main menu")
 
         main_menu_option: MainMenuOption = pick(
             MAIN_MENU_OPTIONS, 
@@ -234,21 +234,25 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except BotDetection:
-        logger.warning("detected as a bot by YouTube")
+        logger.error("cadmium was detected as a bot by YouTube")
         spaced_print("Cadmium was detected as a bot, please refrain from downloading more videos for a while to prevent getting limited or blocked.")
     except InvalidConfigurationError as exception:
-        logger.exception("Cadmium ran into a fatal exception")
+        logger.exception("cadmium ran into a fatal exception")
         spaced_print(f"Fatal Error: {exception}")
     except KeyboardInterrupt:
+        logger.info("Exiting application")
         exit(0)
     except BaseException:
-        logger.exception("Cadmium ran into an unexpected exception")
+        logger.exception("cadmium ran into an unexpected exception")
+
         spaced_print(
             f"Fatal Error: Cadmium ran into an unexpected error." 
             "\n\nDear user,\nApologies for the inconvenience, If you would like to see this problem fixed please consider going to Cadmium's reporting page (https://github.com/Jodenee/Cadmium/issues/new?template=bug_report.md) and creating a report by following the steps shown in the template. " 
             "Thank you"
         )
     else:
+        logger.info("Exiting application")
         exit(0)
     
     input("\nPress enter to close the program... ")
+    logger.info("Exiting application")

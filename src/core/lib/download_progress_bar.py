@@ -25,7 +25,8 @@ class DownloadProgressBar:
         )
 
         youtube_video.register_on_progress_callback(self.on_progress)
-        logger.debug("initialise download progress bar total=%s", stream_size_in_bytes)
+        logger.info("initialised download progress bar (0/%s)", self._progress_bar.total)
+
 
     def on_progress(self, stream: Stream, chunk: bytes, bytes_remaining: int) -> None:
         total_file_size: int = stream.filesize
@@ -34,8 +35,9 @@ class DownloadProgressBar:
         self._progress_bar.n = total_bytes_downloaded
         self._progress_bar.refresh()
 
-        logger.debug("download progress total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)
-
     def close(self):
+        self._progress_bar.n = self._progress_bar.total
+        self._progress_bar.refresh()
         self._progress_bar.close()
-        logger.debug("closed download progress bar total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)
+
+        logger.info("closed download progress bar (%s/%s)", self._progress_bar.n, self._progress_bar.total)

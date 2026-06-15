@@ -32,6 +32,7 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         self._video_only_downloader = video_only_downloader
         self._audio_only_downloader = audio_only_downloader
 
+
     async def download(
         self, 
         youtube_video: AsyncYouTube, 
@@ -39,13 +40,18 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         filename_prefix: Optional[str] = None
     ) -> list[VideoDownloadResult]:
         merge_download = self._configuration["download_behavior_configuration"]["merge_best_of_both_downloads_into_one_file"]
+        results = list[VideoDownloadResult]
 
         logger.debug("merge_download=%s", self._configuration["download_behavior_configuration"]["merge_best_of_both_downloads_into_one_file"])
 
         if merge_download:
-            return await self._download_merged(youtube_video, download_directory, filename_prefix) 
+            results = await self._download_merged(youtube_video, download_directory, filename_prefix) 
         else: 
-            return await self._download_separate(youtube_video, download_directory, filename_prefix)
+            results = await self._download_separate(youtube_video, download_directory, filename_prefix)
+        
+        logger.info("video download for %s was successful", youtube_video.video_id)
+
+        return results
 
 
     async def undo_download(self, result: list[VideoDownloadResult]) -> None:
@@ -82,7 +88,18 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
         # Clean up directory if nothing is downloaded
         if not video_only_download_result["success"] or not audio_only_download_result["success"]:
+            spaced_print("Removing temporary files...")
+            
+            if video_only_download_result["success"] is True:
+                video_only_download_result["download_path"].unlink()
+
+            if audio_only_download_result["success"] is True:
+                audio_only_download_result["download_path"].unlink()
+
             true_download_directory.rmdir()
+
+            spaced_print("Temporary files successfully removed.")
+            logger.info("temporary files successfully removed")
 
         return [ video_only_download_result, audio_only_download_result ]
 
@@ -97,6 +114,8 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         should_skip_existing_files = self._configuration["download_behavior_configuration"]["skip_existing_files"]
         delete_temporary_files = self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
 
+        logger.info("searching for most suitable streams to download")
+
         video_stream: Optional[Stream] = (
             (await youtube_video.streams())
             .filter(is_dash=True, only_video=True)
@@ -109,10 +128,13 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             .first()
         )
 
-        logger.debug("should_skip_existing_files=%s", should_skip_existing_files)
-
         if video_stream == None or audio_stream == None:
-            logger.debug("download_cancelled could not find a suitable stream for the video or audio stream video_stream=%s audio_stream=%s", youtube_video.video_id, video_stream, audio_stream)
+            logger.debug(
+                "download_cancelled could not find a suitable stream for the video or audio stream video_stream=%s audio_stream=%s", 
+                youtube_video.video_id, 
+                video_stream, 
+                audio_stream
+            )
 
             return [{
                 "success": False,
@@ -121,6 +143,17 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
                 "error_message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
             }]
         
+        logger.info("suitable stream successfully found")
+        logger.debug(
+            "video_id=%s video_stream_itag=%s audio_stream_itag=%s should_skip_existing_files=%s custom_file_extension=%s delete_temporary_files=%s",
+            youtube_video.video_id,
+            video_stream.itag,
+            audio_stream.itag, 
+            should_skip_existing_files,
+            custom_file_extension,
+            delete_temporary_files
+        )
+
         ensure_can_use_ffmpeg(
             self._ffmpeg_executable_path, 
             custom_file_extension, 
@@ -136,7 +169,11 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
                 custom_file_extension
             )
         except ImpossibleDownloadPath as exception:
-            logger.debug("download_cancelled due to an impossible download path video_id=%s", youtube_video.video_id)
+            logger.debug(
+                "download_cancelled due to an impossible download path video_id=%s download_path=%s", 
+                youtube_video.video_id,
+                download_directory
+            )
 
             return [{
                 "success": False,
@@ -159,6 +196,8 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
                 "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
             }]
 
+        logger.info("beginning stream download")
+
         temporary_video_download_result = await self._download_stream(
             youtube_video,
             video_stream,
@@ -180,6 +219,9 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
             return [ temporary_video_download_result, temporary_audio_download_result ]
 
+        logger.info("stream download successful")
+        logger.info("beginning video conversion to %s", custom_file_extension)
+
         conversion_bar = self._progress_bar_factory.conversion(
             f"Converting ({await youtube_video.title()}) to ({custom_file_extension})",
             int(video_stream.durationMs)
@@ -196,14 +238,20 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         conversion_bar.close()
         spaced_print("Conversion was successful.")
 
+        logger.info("video conversion to %s successful", custom_file_extension)
+
         if delete_temporary_files:
+            logger.info("removing temporary files")
             logger.debug("removing temporary file path=%s video_id=%s", temporary_video_download_result["download_path"], youtube_video.video_id)
             logger.debug("removing temporary file path=%s video_id=%s", temporary_audio_download_result["download_path"], youtube_video.video_id)
             
+            spaced_print("Removing temporary files...")
+
             temporary_video_download_result["download_path"].unlink()
             temporary_audio_download_result["download_path"].unlink()
 
-            spaced_print("Temporary files cleared successfully.")
+            spaced_print("Temporary files successfully removed.")
+            logger.info("temporary files successfully removed")
 
         return [{
             "success": True,

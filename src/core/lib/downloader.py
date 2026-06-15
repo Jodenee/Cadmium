@@ -65,7 +65,9 @@ class Downloader:
             self.ffmpeg_executable_path
         )
 
-        self.downloaders: dict[DownloadFormat, VideoDownloaderProtocol[VideoDownloadResult] | VideoDownloaderProtocol[list[VideoDownloadResult]]] = {
+        self.downloaders: dict[
+            DownloadFormat, VideoDownloaderProtocol[VideoDownloadResult] | VideoDownloaderProtocol[list[VideoDownloadResult]]
+        ] = {
             DownloadFormat.VIDEO: self.video_downloader,
             DownloadFormat.VIDEO_ONLY: self.video_only_downloader,
             DownloadFormat.AUDIO_ONLY: self.audio_only_downloader,
@@ -81,14 +83,17 @@ class Downloader:
         download_directory: Path, 
         filename_prefix: Optional[str] = None
     ) -> list[VideoDownloadResult]:
-        logger.debug("downloading_video video_url=%s download_format=%s", youtube_video_url, download_format)
+        logger.debug("downloading_video video_url=%s download_format=%s", youtube_video_url, download_format.name)
 
         youtube_video: AsyncYouTube = AsyncYouTube(youtube_video_url)
         streams: StreamQuery = await youtube_video.streams()
         download_results: list[VideoDownloadResult] = []
 
+        logger.info("beginning video download for %s", youtube_video.video_id)
+
         if len(streams) == 0: 
             logger.debug("downloading_video url=%s cancelled due to have no streams available", youtube_video_url)
+            logger.info("video download for %s was unsuccessful", youtube_video.video_id)
 
             return [{
                 "success": False,
@@ -121,6 +126,8 @@ class Downloader:
                     download_result["error_message"]
                 )
 
+        logger.info("video download for %s has concluded", youtube_video.video_id)
+
         return download_results
 
 
@@ -130,7 +137,7 @@ class Downloader:
         download_format: DownloadFormat, 
         download_directory: Path
     ) -> CollectionDownloadResult:
-        logger.info("downloading playlist playlist_url=%s download_format=%s", playlist_url, download_format)
+        logger.debug("downloading_playlist playlist_url=%s download_format=%s", playlist_url, download_format)
 
         playlist: Playlist = Playlist(playlist_url)
         true_download_directory: Path = download_directory
@@ -173,7 +180,7 @@ class Downloader:
         download_format: DownloadFormat, 
         download_directory: Path
     ) -> CollectionDownloadResult:
-        logger.info("downloading channel channel_url=%s download_format=%s", channel_url, download_format)
+        logger.debug("downloading_channel channel_url=%s download_format=%s", channel_url, download_format)
 
         channel: Channel = Channel(channel_url)
         true_download_directory: Path = download_directory

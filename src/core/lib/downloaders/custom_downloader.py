@@ -36,13 +36,20 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
     ) -> list[VideoDownloadResult]:
         results: list[VideoDownloadResult] = []
 
-        logger.debug(
-            "convert_custom_downloads=%s skip_existing_files=%s", 
-            self._configuration["download_behavior_configuration"]["convert_custom_downloads"] , 
-            self._configuration["download_behavior_configuration"]["skip_existing_files"]
-        )
+        logger.info("prompting user for streams to download")
 
         chosen_streams = pick_from_streams(await youtube_video.streams())
+
+        logger.info("suitable stream successfully found")
+        logger.debug(
+            "video_id=%s stream_itags=%s should_convert=%s should_skip_existing_files=%s custom_file_extension=%s delete_temporary_files=%s",
+            youtube_video.video_id,
+            map(lambda x: x.itag, chosen_streams),
+            self._configuration["download_behavior_configuration"]["convert_custom_downloads"], 
+            self._configuration["download_behavior_configuration"]["skip_existing_files"],
+            self._configuration["download_behavior_configuration"]["convert_custom_downloads_to"],
+            self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
+        )
 
         for stream in chosen_streams:
             result = await self._inner_download(
@@ -52,6 +59,8 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             )
 
             results.append(result)
+
+        logger.info("video download for %s was successful", youtube_video.video_id)
 
         return results
 
@@ -73,7 +82,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
         youtube_video = cast(AsyncYouTube, get_youtube_from_stream(stream))
 
-        if not should_convert:
+        if not should_convert and stream.subtype == custom_file_extension:
             download_result = await self._download_stream(
                 youtube_video,
                 stream,
@@ -99,9 +108,11 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
                 custom_file_extension
             )
         except ImpossibleDownloadPath as exception:
-            logger.debug("download_cancelled due to an impossible download path video_id=%s", youtube_video.video_id)
-
-            download_directory.rmdir()
+            logger.debug(
+                "download_cancelled due to an impossible download path video_id=%s download_path=%s", 
+                youtube_video.video_id,
+                download_directory
+            )
 
             return {
                 "success": False,
@@ -123,7 +134,9 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
                 "download_path": None,
                 "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
             }
-        
+
+        logger.info("beginning stream download")
+
         temporary_video_download_result = await self._download_stream(
             youtube_video,
             stream,
@@ -136,6 +149,9 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             logger.debug("downloading_video temporary file download failed video_id=%s", youtube_video.video_id)
 
             return temporary_video_download_result
+
+        logger.info("stream download successful")
+        logger.info("beginning video conversion to %s", custom_file_extension)
 
         conversion_bar = self._progress_bar_factory.conversion(
             f"Converting ({await youtube_video.title()}) to ({custom_file_extension})",
@@ -153,13 +169,24 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         conversion_bar.close()
         spaced_print("Conversion was successful.")
 
-        logger.debug("delete_temporary_files=%s", delete_temporary_files)
+        logger.info("video conversion to %s successful", custom_file_extension)
 
         if delete_temporary_files:
-            logger.debug("removing temporary file path=%s video_id=%s", temporary_video_download_result["download_path"], youtube_video.video_id)
+            logger.info("removing temporary files")
+            logger.debug(
+                "removing temporary file path=%s video_id=%s", 
+                temporary_video_download_result["download_path"], 
+                youtube_video.video_id
+            )
+            
+            spaced_print("Removing temporary files...")
+
             temporary_video_download_result["download_path"].unlink()
 
-            spaced_print("Temporary files cleared successfully.")
+            spaced_print("Temporary files successfully removed.")
+            logger.info("temporary files successfully removed")
+
+        logger.info("stream download %s for %s was successful", stream.itag, youtube_video.video_id)
 
         return {
             "success": True,

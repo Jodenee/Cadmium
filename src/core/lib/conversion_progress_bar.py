@@ -21,17 +21,17 @@ class ConversionProgressBar:
             unit="seconds"
         )
 
-        logger.debug("initialise conversion progress bar total=%s", self._progress_bar.total)
+        logger.info("initialised conversion progress bar (0/%s)", self._progress_bar.total)
+
 
     def on_progress(self, progress: Progress):
         self._progress_bar.n = min(round(progress.time.total_seconds(), 2), self._progress_bar.total)
         self._progress_bar.refresh()
 
-        logger.debug("conversion progress total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)
 
     def close(self):
         self._progress_bar.n = self._progress_bar.total
         self._progress_bar.refresh()
         self._progress_bar.close()
 
-        logger.debug("closed conversion progress bar total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)
+        logger.info("closed conversion progress bar (%s/%s)", self._progress_bar.n, self._progress_bar.total)

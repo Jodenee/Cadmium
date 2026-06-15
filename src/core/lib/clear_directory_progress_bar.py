@@ -21,15 +21,17 @@ class ClearDirectoryProgressBar:
             unit="file"
         )
 
-        logger.debug("initialise clear directory progress bar total=%s", self._progress_bar.total)
+        logger.info("initialised clear directory progress bar (0/%s)", self._progress_bar.total)
+
 
     def on_progress(self, file_number: int):
         self._progress_bar.n = file_number
         self._progress_bar.refresh()
 
-        logger.debug("clear directory progress total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)
 
     def close(self):
+        self._progress_bar.n = self._progress_bar.total
+        self._progress_bar.refresh()
         self._progress_bar.close()
 
-        logger.debug("closed clear directory progress bar total_size=%s current_size=%s", self._progress_bar.total, self._progress_bar.n)
+        logger.info("closed clear directory progress bar (%s/%s)", self._progress_bar.n, self._progress_bar.total)

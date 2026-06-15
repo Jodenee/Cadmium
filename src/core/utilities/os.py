@@ -278,7 +278,7 @@ def clear_directory_files(directory: Path, with_extensions: List[str], on_progre
         on_progress: A callback function to track the progress of clearing `directory`.
     """
 
-    logger.info("Clearing all files from directory %s with extensions %s", directory, with_extensions)
+    logger.info("removing all files from directory %s with extensions %s", directory, with_extensions)
 
     files_to_remove = [
         file for file in directory.iterdir() 
@@ -287,10 +287,12 @@ def clear_directory_files(directory: Path, with_extensions: List[str], on_progre
 
     for file_number, file in enumerate(files_to_remove, 1):
         file.unlink()
-        logger.info("Removed file %s", file)
+        logger.debug("removed_file=%s", file)
 
         if on_progress:
             on_progress(file_number)
+
+    logger.info("files successfully removed")
 
 
 def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
