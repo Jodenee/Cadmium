@@ -82,7 +82,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
         youtube_video = cast(AsyncYouTube, get_youtube_from_stream(stream))
 
-        if not should_convert and stream.subtype == custom_file_extension:
+        if not should_convert or stream.subtype == custom_file_extension:
             download_result = await self._download_stream(
                 youtube_video,
                 stream,
@@ -160,9 +160,13 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
         await convert_file(
             cast(Path, self._ffmpeg_executable_path), 
-            [ temporary_video_download_result["download_path"] ], 
-            [ converted_file_path ],
-            [ "y" ],
+            [ 
+                ( temporary_video_download_result["download_path"], None ) 
+            ], 
+            [ 
+                ( converted_file_path, None ) 
+            ],
+            [ { "y": None } ],
             conversion_bar.on_progress
         )
 
