@@ -69,7 +69,16 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             await youtube_video.title(), 
             f"Video ({youtube_video.video_id})"
         )
-        true_download_directory.mkdir(exist_ok=True, parents=True)
+
+        if true_download_directory.exists():
+            return [{
+                "success": False,
+                "youtube_video": youtube_video,
+                "download_path": None,
+                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=true_download_directory)
+            }]
+
+        true_download_directory.mkdir(parents=True)
 
         video_only_download_result: VideoDownloadResult
         audio_only_download_result: VideoDownloadResult
