@@ -4,9 +4,10 @@ from typing import Optional, cast
 from pathlib import Path
 from pytubefix import AsyncYouTube, Stream
 
+from ..temporary_file_storage import TemporaryFileStorage
 from ..protocols import VideoDownloaderProtocol
-from ...custom_types import VideoDownloadResult, Configuration
 from ..factories import ProgressBarFactory
+from ...custom_types import VideoDownloadResult, Configuration
 from ...exceptions import ImpossibleDownloadPath
 from ...utilities.constants import ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, APPLICATION_LOGGER_NAME, UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, TEMPORARY_FILES_DIRECTORY_PATH
 from ...utilities.validation import ensure_can_use_ffmpeg
@@ -20,12 +21,15 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
     def __init__(
         self, 
         configuration: Configuration, 
+        temporary_file_storage: TemporaryFileStorage,
         progress_bar_factory: ProgressBarFactory,
         ffmpeg_executable_path: Optional[Path] = None
     ) -> None:
+        self._temporary_file_storage = temporary_file_storage
         self._configuration = configuration
         self._progress_bar_factory = progress_bar_factory
         self._ffmpeg_executable_path = ffmpeg_executable_path
+
 
     async def download(
         self, 
@@ -140,6 +144,8 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
                 youtube_video.video_id
             )
             return temporary_video_download_result
+        
+        self._temporary_file_storage.register_temporary_file(temporary_video_download_result["download_path"])
 
         logger.info("stream download successful")
         logger.info("beginning video conversion to %s", custom_file_extension)
@@ -167,19 +173,9 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
         logger.info("video conversion to %s successful", custom_file_extension)
 
         if delete_temporary_files:
-            logger.info("removing temporary files")
-            logger.debug(
-                "removing temporary file path=%s video_id=%s", 
-                temporary_video_download_result["download_path"], 
-                youtube_video.video_id
-            )
-
-            spaced_print("Removing temporary files...")            
-            
-            temporary_video_download_result["download_path"].unlink()
-
-            spaced_print("Temporary files cleared successfully.")
-            logger.info("temporary files successfully removed")
+            spaced_print("Removing temporary files...")
+            self._temporary_file_storage.remove_temporary_files()
+            spaced_print("Temporary files successfully removed.")
 
         logger.info("video download for %s was successful", youtube_video.video_id)
 
@@ -189,7 +185,3 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
             "download_path": converted_file_path,
             "error_message": None
         }
-
-
-    async def undo_download(self, result: VideoDownloadResult) -> None:
-        ...

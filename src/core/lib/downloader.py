@@ -3,13 +3,12 @@ import logging
 from pytubefix.async_youtube import AsyncYouTube
 from pytubefix import Playlist, Stream, StreamQuery, Channel
 from pathlib import Path
-from typing import Optional, cast
+from typing import Optional
 
+from ..lib.temporary_file_storage import TemporaryFileStorage
 from ..custom_types.collection_download_result import CollectionDownloadResult
-from ..utilities.constants import ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE, APPLICATION_LOGGER_NAME
-from ..utilities.file_conversion import convert_file
-from ..utilities.validation import ensure_can_use_ffmpeg
-from ..utilities.console import pick_from_streams, spaced_print
+from ..utilities.constants import ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE, APPLICATION_LOGGER_NAME
+from ..utilities.console import spaced_print
 from ..utilities.os import resolve_safe_file_path, safe_join_directory
 from ..utilities.pytubefix_extensions import stream_repr
 
@@ -34,26 +33,31 @@ class Downloader:
         self.progress_bar_factory = progress_bar_factory
         self.temporary_files_directory_path = temporary_files_directory_path
         self.ffmpeg_executable_path = ffmpeg_executable_path
+        self.temporary_file_storage = TemporaryFileStorage()
 
         # Define downloader subclasses
 
         self.video_downloader = VideoDownloader(
             self.configuration,
+            self.temporary_file_storage,
             self.progress_bar_factory,
             self.ffmpeg_executable_path
         )
         self.video_only_downloader = VideoOnlyDownloader(
             self.configuration,
+            self.temporary_file_storage,
             self.progress_bar_factory,
             self.ffmpeg_executable_path
         )
         self.audio_only_downloader = AudioOnlyDownloader(
             self.configuration,
+            self.temporary_file_storage,
             self.progress_bar_factory,
             self.ffmpeg_executable_path
         )
         self.best_of_both_downloader = BestOfBothDownloader(
             self.configuration,
+            self.temporary_file_storage,
             self.progress_bar_factory,
             self.video_only_downloader,
             self.audio_only_downloader,
@@ -61,6 +65,7 @@ class Downloader:
         )
         self.custom_downloader = CustomDownloader(
             self.configuration,
+            self.temporary_file_storage,
             self.progress_bar_factory,
             self.ffmpeg_executable_path
         )

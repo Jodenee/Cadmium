@@ -19,6 +19,8 @@ class VideoDownloaderProtocol[ReturnType](Protocol):
     _configuration: Configuration
     _progress_bar_factory: ProgressBarFactory
     _ffmpeg_executable_path: Optional[Path]
+    _temporary_files: list[Path] = []
+
 
     @abstractmethod
     async def download(
@@ -29,9 +31,6 @@ class VideoDownloaderProtocol[ReturnType](Protocol):
     ) -> ReturnType:
         ...
 
-    @abstractmethod
-    async def undo_download(self, result: ReturnType) -> None:
-        ...
 
     async def _download_stream(
         self, 

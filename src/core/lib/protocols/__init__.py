@@ -1,1 +1,1 @@
-from .video_downloader_protocols import VideoDownloaderProtocol
+from .video_downloader_protocol import VideoDownloaderProtocol

@@ -185,7 +185,7 @@ async def main() -> None:
 
             logger.debug("download_directory=%s", download_directory)
 
-            urls: List[str]
+            urls: list[str]
 
             with TO_DOWNLOAD_FILE_PATH.open("r") as file:
                 urls = [ line.removesuffix("\n") for line in file.readlines() if not line.isspace() ]
