@@ -6,8 +6,9 @@ from pytubefix import AsyncYouTube, Stream
 
 from ..temporary_file_storage import TemporaryFileStorage
 from ..protocols import VideoDownloaderProtocol
-from ...custom_types import VideoDownloadResult, Configuration
 from ..factories import ProgressBarFactory
+from ..dataclasses import FFmpegFileArgs, FFmpegOptionArgs
+from ...custom_types import VideoDownloadResult, Configuration
 from ...exceptions import ImpossibleDownloadPath
 from ...utilities.constants import ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, APPLICATION_LOGGER_NAME, UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, TEMPORARY_FILES_DIRECTORY_PATH
 from ...utilities.validation import ensure_can_use_ffmpeg
@@ -159,13 +160,15 @@ class VideoDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
 
         await convert_file(
             cast(Path, self._ffmpeg_executable_path), 
-            [ 
-                ( temporary_video_download_result["download_path"], None ) 
-            ], 
-            [ 
-                ( converted_file_path, None ) 
-            ],
-            [ { "y": None } ],
+            ( 
+                FFmpegFileArgs(temporary_video_download_result["download_path"], { "c": "copy" }),
+            ), 
+            ( 
+                FFmpegFileArgs(converted_file_path),
+            ),
+            ( 
+                FFmpegOptionArgs("y", None), 
+            ),
             conversion_bar.on_progress
         )
 

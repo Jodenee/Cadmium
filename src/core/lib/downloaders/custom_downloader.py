@@ -7,13 +7,14 @@ from pytubefix import AsyncYouTube, Stream
 from ..temporary_file_storage import TemporaryFileStorage
 from ..protocols import VideoDownloaderProtocol
 from ..factories import ProgressBarFactory
+from ..dataclasses import FFmpegFileArgs, FFmpegOptionArgs
 from ...custom_types import VideoDownloadResult, Configuration
 from ...exceptions import ImpossibleDownloadPath
 from ...utilities.constants import ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, APPLICATION_LOGGER_NAME, TEMPORARY_FILES_DIRECTORY_PATH
 from ...utilities.validation import ensure_can_use_ffmpeg
 from ...utilities.console import pick_from_streams, spaced_print
 from ...utilities.file_conversion import convert_file
-from ...utilities.os import resolve_safe_file_path
+from ...utilities.os import resolve_safe_file_path, safe_join_directory
 from ...utilities.pytubefix_extensions import get_youtube_from_stream
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
@@ -39,22 +40,32 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         filename_prefix: Optional[str] = None
     ) -> list[VideoDownloadResult]:
         delete_temporary_files = self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
+        put_in_custom_folder = self._configuration["quality_of_life_configuration"]["put_custom_streams_in_folder"]
         results: list[VideoDownloadResult] = []
 
         logger.info("prompting user for streams to download")
 
         chosen_streams = pick_from_streams(await youtube_video.streams())
 
-        logger.info("suitable stream successfully found")
+        logger.info("suitable stream(s) successfully chosen")
         logger.debug(
-            "video_id=%s stream_itags=%s should_convert=%s should_skip_existing_files=%s custom_file_extension=%s delete_temporary_files=%s",
+            "video_id=%s stream_itags=%s should_convert=%s should_skip_existing_files=%s custom_file_extension=%s delete_temporary_files=%s put_custom_streams_in_folder=%s",
             youtube_video.video_id,
             map(lambda x: x.itag, chosen_streams),
             self._configuration["download_behavior_configuration"]["convert_custom_downloads"], 
             self._configuration["download_behavior_configuration"]["skip_existing_files"],
             self._configuration["download_behavior_configuration"]["convert_custom_downloads_to"],
-            self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
+            self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"],
+            put_in_custom_folder
         )
+
+        if put_in_custom_folder:
+            download_directory = safe_join_directory(
+                download_directory, 
+                await youtube_video.title(), 
+                f"Video ({youtube_video.video_id})"
+            )
+            download_directory.mkdir(parents=True)
 
         for stream in chosen_streams:
             result = await self._inner_download(
@@ -64,6 +75,9 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             )
 
             results.append(result)
+
+        if all(map(lambda r: not r["success"], results)):
+            download_directory.rmdir()
 
         if delete_temporary_files:
             spaced_print("Removing temporary files...")
@@ -166,13 +180,15 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
         await convert_file(
             cast(Path, self._ffmpeg_executable_path), 
-            [ 
-                ( temporary_video_download_result["download_path"], None ) 
-            ], 
-            [ 
-                ( converted_file_path, None ) 
-            ],
-            [ { "y": None } ],
+            ( 
+                FFmpegFileArgs(temporary_video_download_result["download_path"], { "c": "copy" }), 
+            ), 
+            ( 
+                FFmpegFileArgs(converted_file_path),
+            ),
+            ( 
+                FFmpegOptionArgs("y"),
+            ),
             conversion_bar.on_progress
         )
 

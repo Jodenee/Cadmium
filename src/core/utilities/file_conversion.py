@@ -1,21 +1,21 @@
 import logging
 
 from pathlib import Path
-from typing import Callable, List, Optional, Union
+from typing import Callable, Optional, Union
 from ffmpeg.asyncio import FFmpeg
 from ffmpeg import Progress
 from ffmpeg.types import Option
+
+from ..lib.dataclasses import FFmpegFileArgs, FFmpegOptionArgs
 from .constants import APPLICATION_LOGGER_NAME
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
-_ffmpeg_file_arguments = tuple[str | Path, Optional[dict[str, Optional[Option]]]]
-
 async def convert_file(
-    ffmpeg_executable_path: Union[str, Path], 
-    input_files: list[_ffmpeg_file_arguments], 
-    output_files: list[_ffmpeg_file_arguments],
-    options: list[dict[str, Optional[Option]]],
+    ffmpeg_executable_path: str | Path, 
+    input_files: tuple[FFmpegFileArgs, ...], 
+    output_files: tuple[FFmpegFileArgs, ...],
+    options: tuple[FFmpegOptionArgs, ...],
     progress_callback: Optional[Callable[[Progress], None]] = None
 ) -> None:
     """Converts one or more files into one or more output files.
@@ -35,13 +35,13 @@ async def convert_file(
     ffmpeg = FFmpeg(str(ffmpeg_executable_path))
 
     for input_file in input_files:
-        ffmpeg.input(*input_file)
+        ffmpeg.input(input_file.url, input_file.options)
 
     for output_file in output_files:
-        ffmpeg.output(*output_file)
+        ffmpeg.output(output_file.url, output_file.options)
     
     for option in options:
-        ffmpeg.option(*option)
+        ffmpeg.option(option.key, option.value)
 
     if progress_callback:
         ffmpeg.on("progress", progress_callback)
