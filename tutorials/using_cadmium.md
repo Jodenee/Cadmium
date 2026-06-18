@@ -19,18 +19,18 @@ https://www.youtube.com/@Deathbrains
 ```
 
 ### The `downloads` Folder
-The downloads folder is the default location for downloads of any kind by Cadmium, the downloads folder is organized by Download Format to make finding your videos easier while maintaining good organization. 
+The downloads folder is the default location for downloads of any kind by Cadmium, the downloads folder is organized by Download Format to make finding your videos easier while maintaining good organisation. 
 
 ### Download Formats
 A download format refers to how media files, like videos or audio, are packaged and saved during download, each impacting their quality, type, and file size.
 
-| Download Format  | Description                                                                            | Use Cases                                                  |
-|------------------|----------------------------------------------------------------------------------------|------------------------------------------------------------|
-| **Video**        | Downloads both video and audio tracks in one file but at **low quality**.              | Useful for quick downloads with limited storage.           |
-| **Video Only**   | Downloads only the video track but at **high quality**.                                | Best for high-quality visuals without audio.               |
-| **Audio Only**   | Downloads only the audio track but at **high quality**.                                | Perfect for music or podcasts where video is unnecessary.  |
-| **Best of Both** | Downloads both the video and audio tracks in 2 separate files but at **high quality**. | Ideal for full media experiences, such as movies or shows. |
-| **Custom**       | Downloads streams of your choosing, allowing for a tailored download experience.       | Great for advanced users who want specific content.        |
+| Download Format  | Description                                                                            | Use Cases                                                             |
+|------------------|----------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| **Video**        | Downloads both video and audio tracks in one file but at **low quality**.              | Useful for quick downloads with average quality with limited storage. |
+| **Video Only**   | Downloads only the video track but at **high quality**.                                | Best for high-quality visuals without audio.                          |
+| **Audio Only**   | Downloads only the audio track but at **high quality**.                                | Perfect for music or podcasts where video is unnecessary.             |
+| **Best of Both** | Downloads both the video and audio tracks in 2 separate files but at **high quality**. | Ideal for full media experiences, such as movies or shows.            |
+| **Custom**       | Downloads streams of your choosing, allowing for a tailored download experience.       | Useful for more fine-grain control over which stream is downloaded.   |
 
 
 ## Steps
