@@ -1,30 +1,26 @@
 import sys
-import logging
-
-from typing import Dict, List, Tuple
-from re import compile as compile_regex
 from pathlib import Path
+from re import compile as compile_regex
 
 from pick import Option
 
-from core.custom_types.configuration import Configuration
-from core.enums.download_format import DownloadFormat
-from core.enums.main_menu_option import MainMenuOption
-from core.enums.media_type import MediaType
+from ..custom_types.configuration import Configuration
+from ..enums.download_format import DownloadFormat
+from ..enums.main_menu_option import MainMenuOption
 
 # General constants to be used within the application
-TEMPORARY_FILE_EXTENSIONS: List[str] = [ ".webm", ".m4a", ".mp4", ".mp3" ]
+TEMPORARY_FILE_EXTENSIONS: list[str] = [ ".webm", ".m4a", ".mp4", ".mp3" ]
 SELECT_MENU_INDICATOR: str = ">"
 DEFAULT_CONFIGURATION: Configuration = {
     "download_behavior_configuration": {
         "skip_existing_files": True,
         "automatically_delete_temporary_files_after_download": True,
 
-        "convert_video_downloads": False,
-        "convert_video_only_downloads": False,
-        "convert_audio_only_downloads": False,
-        "merge_best_of_both_downloads_into_one_file": False,
-        "convert_custom_downloads": False,
+        "convert_video_downloads": True,
+        "convert_video_only_downloads": True,
+        "convert_audio_only_downloads": True,
+        "merge_best_of_both_downloads_into_one_file": True,
+        "convert_custom_downloads": True,
         
         "convert_video_downloads_to": "mp4",
         "convert_video_only_downloads_to": "mp4",
@@ -46,9 +42,11 @@ DEFAULT_CONFIGURATION: Configuration = {
             "best_of_both_download_location_override": "",
             "custom_download_location_override": ""
         },
+
         "put_playlist_videos_in_folder": True,
         "put_channel_videos_in_folder": True,
         "put_custom_streams_in_folder": True,
+        
         "display_chosen_stream_on_start_of_download": True
     },
     "warning_configuration": {
@@ -91,7 +89,7 @@ TEMPORARY_FILES_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "temporary_files
 DOWNLOADS_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "downloads"
 LOGGING_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "logs"
 
-DEFAULT_DOWNLOAD_LOCATIONS_MAP: Dict[DownloadFormat, Path] = {
+DEFAULT_DOWNLOAD_LOCATIONS_MAP: dict[DownloadFormat, Path] = {
     DownloadFormat.VIDEO: DOWNLOADS_DIRECTORY_PATH / "video",
     DownloadFormat.VIDEO_ONLY: DOWNLOADS_DIRECTORY_PATH / "video_only",
     DownloadFormat.AUDIO_ONLY: DOWNLOADS_DIRECTORY_PATH / "audio_only",
@@ -100,12 +98,12 @@ DEFAULT_DOWNLOAD_LOCATIONS_MAP: Dict[DownloadFormat, Path] = {
 }
 
 # Menu options
-MAIN_MENU_OPTIONS: Tuple[Option, ...] = (
+MAIN_MENU_OPTIONS: tuple[Option, ...] = (
     Option(MainMenuOption.DOWNLOAD.value, MainMenuOption.DOWNLOAD, "Download videos."),
     Option(f"{MainMenuOption.EDIT_CONFIGURATION.value} (Coming soon)", MainMenuOption.EDIT_CONFIGURATION, "Edit Cadmium's configuration.", enabled=False),
     Option(MainMenuOption.EXIT.value, MainMenuOption.EXIT, "Exit the program.")
 )
-DOWNLOAD_FORMAT_MENU_OPTIONS: Tuple[Option, ...] = (
+DOWNLOAD_FORMAT_MENU_OPTIONS: tuple[Option, ...] = (
     Option(DownloadFormat.VIDEO.value, DownloadFormat.VIDEO, "Downloads both video and audio tracks but at low quality."), 
     Option(DownloadFormat.VIDEO_ONLY.value, DownloadFormat.VIDEO_ONLY, "Downloads only the video track but at high quality."), 
     Option(DownloadFormat.AUDIO_ONLY.value, DownloadFormat.AUDIO_ONLY, "Downloads only the audio track but at high quality."), 
