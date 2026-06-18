@@ -3,9 +3,9 @@ import logging
 from pytubefix.async_youtube import AsyncYouTube, Stream
 from tqdm.asyncio import tqdm
 
-from ..custom_types.configuration import Configuration
-from ..enums import Colours
-from ..utilities.constants import APPLICATION_LOGGER_NAME
+from ...custom_types.configuration import Configuration
+from ...enums import Colours
+from ...utilities.constants import APPLICATION_LOGGER_NAME
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 

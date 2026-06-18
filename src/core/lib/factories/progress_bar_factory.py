@@ -1,8 +1,7 @@
-from ffmpeg.asyncio import FFmpeg
-from pytubefix.async_youtube import AsyncYouTube, Stream
+from pytubefix.async_youtube import AsyncYouTube
 
+from ..progress_bars import ClearDirectoryProgressBar, ConversionProgressBar, DownloadProgressBar
 from ...custom_types import Configuration
-from ...lib import ClearDirectoryProgressBar, ConversionProgressBar, DownloadProgressBar
 
 class ProgressBarFactory:
     def __init__(self, configuration: Configuration) -> None:

@@ -3,9 +3,9 @@ import logging
 from tqdm.asyncio import tqdm
 from ffmpeg import Progress
 
-from ..custom_types import Configuration
-from ..enums import Colours
-from ..utilities.constants import APPLICATION_LOGGER_NAME
+from ...custom_types import Configuration
+from ...enums import Colours
+from ...utilities.constants import APPLICATION_LOGGER_NAME
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
