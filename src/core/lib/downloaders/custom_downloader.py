@@ -181,10 +181,10 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         await convert_file(
             cast(Path, self._ffmpeg_executable_path), 
             ( 
-                FFmpegFileArgs(temporary_video_download_result["download_path"], { "c": "copy" }), 
+                FFmpegFileArgs(temporary_video_download_result["download_path"]), 
             ), 
             ( 
-                FFmpegFileArgs(converted_file_path),
+                FFmpegFileArgs(converted_file_path, { "c": "copy" }),
             ),
             ( 
                 FFmpegOptionArgs("y"),
