@@ -24,13 +24,13 @@ The downloads folder is the default location for downloads of any kind by Cadmiu
 ### Download Formats
 A download format refers to how media files, like videos or audio, are packaged and saved during download, each impacting their quality, type, and file size.
 
-| Download Format  | Description                                                                      | Use Cases                                                 |
-|------------------|----------------------------------------------------------------------------------|-----------------------------------------------------------|
-| **Video**        | Downloads both video and audio tracks in one file but at **low quality**.        | Useful for quick downloads with limited storage.          |
-| **Video Only**   | Downloads only the video track but at **high quality**.                          | Best for high-quality visuals without audio.              |
-| **Audio Only**   | Downloads only the audio track but at **high quality**.                          | Perfect for music or podcasts where video is unnecessary. |
-| **Best of Both** | Downloads both the video and audio tracks in 2 separate files but at **high quality**. (Tip: Enabling the `merge_best_of_both_downloads_into_one_file` configuration will result in 1 video file containing the best video and audio, read more [here](../tutorials/configuration.md#download-behavior-configuration).) | Ideal for full media experiences, such as movies or shows. |
-| **Custom**       | Downloads streams of your choosing, allowing for a tailored download experience. | Great for advanced users who want specific content.       |
+| Download Format  | Description                                                                            | Use Cases                                                  |
+|------------------|----------------------------------------------------------------------------------------|------------------------------------------------------------|
+| **Video**        | Downloads both video and audio tracks in one file but at **low quality**.              | Useful for quick downloads with limited storage.           |
+| **Video Only**   | Downloads only the video track but at **high quality**.                                | Best for high-quality visuals without audio.               |
+| **Audio Only**   | Downloads only the audio track but at **high quality**.                                | Perfect for music or podcasts where video is unnecessary.  |
+| **Best of Both** | Downloads both the video and audio tracks in 2 separate files but at **high quality**. | Ideal for full media experiences, such as movies or shows. |
+| **Custom**       | Downloads streams of your choosing, allowing for a tailored download experience.       | Great for advanced users who want specific content.        |
 
 
 ## Steps
@@ -53,7 +53,7 @@ Once cadmium is opened, choose the "download" option using the up and down arrow
 ![Image showing how to choose download main menu option.](../assets/tutorial/using_cadmium_assets/CadmiumMainMenu.png)
 
 ### 4. Format Selection
-After that you will be prompted to select a format for your media.
+After that you will be prompted to select a format for your media. Refer to [this table](#download-formats) for a description of each format and use cases.
 
 ![Image showing how to select a download format.](../assets/tutorial/using_cadmium_assets/CadmiumFormatSelect.png)
 
