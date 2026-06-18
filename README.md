@@ -12,7 +12,7 @@ Cadmium is a python command line application made to conveniently download youtu
 * 🔄 **Automatic File Conversion**
     * Cadmium automatically converts downloaded videos into highly supported file formats for ease of use. Cadmium can also convert files into any format supported by FFmpeg just by simply changing the download configuration.
 * ⚙️ **Customisable**
-    * Cadmium comes with many configurations you can use to improve your experience, from custom colours to download behaviour.
+    * Cadmium comes with many different configurations for you to customise and enhance your experience.
 
 ## Supported Platforms
 
