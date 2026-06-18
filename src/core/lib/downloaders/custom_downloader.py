@@ -65,7 +65,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
                 await youtube_video.title(), 
                 f"Video ({youtube_video.video_id})"
             )
-            download_directory.mkdir(parents=True)
+            download_directory.mkdir(parents=True, exist_ok=True)
 
         for stream in chosen_streams:
             result = await self._inner_download(
