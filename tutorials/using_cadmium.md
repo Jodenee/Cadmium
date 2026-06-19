@@ -32,13 +32,13 @@ The downloads folder is the default location where files downloaded by Cadmium e
 ### Download Formats
 A download format refers to how media files, like videos or audio, are packaged and saved during download, each impacting their quality, type, and file size.
 
-| Download Format  | Description                                                                                                                     | Use Cases                                                             |
-|------------------|---------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| **Video**        | Downloads a file containing both video and audio but at a **low quality**                                                       | Useful for quick downloads with average quality with limited storage  |
-| **Video Only**   | Downloads a file only containing video but at a very **high quality**                                                           | Best for high-quality video downloads that do not need audio          |
-| **Audio Only**   | Downloads a file only containing audio but at a very **high quality**                                                           | Perfect for music or podcasts where video is unnecessary              |
-| **Best of Both** | Downloads two files, one containing the video and the other containing the audio but at **high quality**                        | Ideal for full media experiences, such as movies or shows             |
-| **Custom**       | Downloads a variable amount of files, each file can contain either only video or only audio or containing both at *any quality* | Used for more fine-grain control over which stream is downloaded      |
+| Download Format  | Description                                                                                                                       | Use Cases                                                             |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| **Video**        | Downloads a file containing both video and audio but at a **low quality**                                                         | Useful for quick downloads with average quality with limited storage  |
+| **Video Only**   | Downloads a file only containing video but at a very **high quality**                                                             | Best for high-quality video downloads that do not need audio          |
+| **Audio Only**   | Downloads a file only containing audio but at a very **high quality**                                                             | Perfect for music or podcasts where video is unnecessary              |
+| **Best of Both** | Downloads two files, one containing the video and the other containing the audio but at **high quality**                          | Ideal for full media experiences, such as movies or shows             |
+| **Custom**       | Downloads a variable amount of files, each file can contain either only video or only audio or containing both at **any quality** | Used for more fine-grain control over which stream is downloaded      |
 
 ## Steps
 
