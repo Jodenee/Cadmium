@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Optional
 from json import load as json_load, dumps as json_dumps
 
-from ..custom_types import Configuration
 from .constants import DEFAULT_CONFIGURATION, APPLICATION_LOGGER_NAME
+from ..custom_types import Configuration
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 

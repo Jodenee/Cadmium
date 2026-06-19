@@ -2,7 +2,7 @@ import logging
 
 from os import environ, system as run_command
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Optional
 from platform import system, machine
 from re import Pattern, sub as re_sub
 
@@ -52,7 +52,7 @@ def get_cpu_architecture() -> CpuArchitecture:
         A `OperatingSystem` enum representing the current operating system.
     """
 
-    raw_cpu_architecture_map: Dict[str, CpuArchitecture] = {
+    raw_cpu_architecture_map: dict[str, CpuArchitecture] = {
         "x86_64": CpuArchitecture.x86_64,
         "AMD64": CpuArchitecture.x86_64,
         "aarch64": CpuArchitecture.ARM64,
@@ -104,7 +104,7 @@ def safe_os_name(name: str, fallback_name: str, max_length: int = MAX_OS_FILENAM
         OperatingSystem.LINUX: LINUX_RESERVED_FILENAME_CHARACTERS,
         OperatingSystem.DARWIN: DARWIN_RESERVED_FILENAME_CHARACTERS,
     }, MATCH_NOTHING)
-    reserved_filenames: Tuple[str, ...] = choose(OPERATING_SYSTEM, {
+    reserved_filenames: tuple[str, ...] = choose(OPERATING_SYSTEM, {
         OperatingSystem.WINDOWS: WINDOWS_RESERVED_FILENAMES,
         OperatingSystem.DARWIN: DARWIN_RESERVED_FILENAMES
     }, ())
@@ -147,7 +147,7 @@ def safe_full_filename(
         The sanitized filename.
     """
 
-    split_full_filename: List[str] = full_filename.rsplit(".", 1)
+    split_full_filename: list[str] = full_filename.rsplit(".", 1)
     filename: str = split_full_filename[0]
     file_extension: str = split_full_filename[len(split_full_filename) - 1] if extension_override == None else extension_override
     max_filename_length: int = max_length - (len(filename_prefix or "") + len(file_extension) + 1) # calculates how long the file's name can be
@@ -239,7 +239,7 @@ def resolve_safe_file_path(
     return directory / safe_filename
 
 
-def calculate_max_filename_length(directory: Union[Path, str]) -> int:
+def calculate_max_filename_length(directory: Path | str) -> int:
     """Calculates the maximum filename length allowed in `directory` to not exceed the operating system's path limit.
 
     Args:
@@ -252,7 +252,7 @@ def calculate_max_filename_length(directory: Union[Path, str]) -> int:
     return min(MAX_OS_PATH_LENGTH - (len(str(directory)) + 1), MAX_OS_FILENAME_LENGTH)
 
 
-def count_directory_files(directory: Path, with_extensions: List[str]) -> int:
+def count_directory_files(directory: Path, with_extensions: list[str]) -> int:
     """Counts how many files are inside `directory` with a extensions in `with_extensions`.
 
     Args:
@@ -269,7 +269,7 @@ def count_directory_files(directory: Path, with_extensions: List[str]) -> int:
     ])
 
 
-def clear_directory_files(directory: Path, with_extensions: List[str], on_progress: Optional[Callable[[int], None]] = None) -> None:
+def clear_directory_files(directory: Path, with_extensions: list[str], on_progress: Optional[Callable[[int], None]] = None) -> None:
     """Clears `directory` of files with extension in `with_extensions`.
 
     Args:

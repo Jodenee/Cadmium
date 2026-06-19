@@ -2,9 +2,8 @@
 import logging
 
 from pathlib import Path
-from typing import overload
 
-from ..utilities.constants import APPLICATION_LOGGER_NAME, VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE
+from ..utilities.constants import APPLICATION_LOGGER_NAME
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 

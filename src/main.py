@@ -40,7 +40,7 @@ pick.KEYS_SELECT += (ARROW_KEY_RIGHT, ord("d") )
 pick.KEYS_ENTER += (459, )
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 from pick import pick
 from pytubefix.exceptions import BotDetection
 from sys import exit
@@ -53,7 +53,7 @@ from core.custom_types import Configuration
 from core.lib import Downloader, ProgressBarFactory
 from core.utilities.configuration import load_configuration, create_configuration_file
 from core.utilities.console import display_collection_download_result, display_video_download_result, spaced_print
-from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg, OPERATING_SYSTEM, CPU_ARCHITECTURE
+from core.utilities.os import clear_console, count_directory_files, try_find_ffmpeg, OPERATING_SYSTEM, CPU_ARCHITECTURE
 from core.utilities.parse import parse_youtube_link_type
 from core.utilities.constants import CONFIGURATION_FILE_PATH, DEFAULT_DOWNLOAD_LOCATIONS_MAP, DOWNLOAD_FORMAT_MENU_OPTIONS, DOWNLOADS_DIRECTORY_PATH, MAIN_MENU_OPTIONS, SELECT_MENU_INDICATOR, \
     TEMPORARY_FILE_EXTENSIONS, TEMPORARY_FILES_DIRECTORY_PATH, TO_DOWNLOAD_FILE_PATH, LOGGING_DIRECTORY_PATH, APPLICATION_LOGGER_NAME

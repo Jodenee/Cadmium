@@ -1,18 +1,12 @@
 # Generics
 
 from re import sub as re_sub
-from typing import Dict, TypeVar
 
-from core.utilities.constants import MATCH_CONSECUTIVE_SPACES
-
-# Generic variables
-
-K = TypeVar("K")
-T = TypeVar("T")
+from .constants import MATCH_CONSECUTIVE_SPACES
 
 # Helper functions
 
-def choose(key: K, map: Dict[K, T], default: T) -> T:
+def choose[K, T](key: K, map: dict[K, T], default: T) -> T:
     """Chooses a value from a dictionary using a provided key.
 
     Args:

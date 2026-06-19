@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal, Optional, TypedDict, Union
+from typing import Literal, TypedDict
 from pytubefix import AsyncYouTube
 
 class VideoDownloadResultSuccess(TypedDict):
@@ -14,4 +14,4 @@ class VideoDownloadResultFailure(TypedDict):
     download_path: None
     error_message: str
 
-VideoDownloadResult = Union[VideoDownloadResultSuccess, VideoDownloadResultFailure]
+VideoDownloadResult = VideoDownloadResultSuccess | VideoDownloadResultFailure

@@ -1,8 +1,8 @@
 import logging
 
-from typing import Literal, NamedTuple, Union
+from typing import Literal, NamedTuple
 
-from core.utilities.constants import YOUTUBE_CHANNEL_REGEX, YOUTUBE_PLAYLIST_REGEX, YOUTUBE_VIDEO_REGEX, APPLICATION_LOGGER_NAME
+from .constants import YOUTUBE_CHANNEL_REGEX, YOUTUBE_PLAYLIST_REGEX, YOUTUBE_VIDEO_REGEX, APPLICATION_LOGGER_NAME
 from ..enums import MediaType
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
@@ -17,7 +17,7 @@ class _UrlParseFailure(NamedTuple):
     success: Literal[False]
     mediaType: None
 
-UrlParseResult = Union[_UrlParseSuccess, _UrlParseFailure]
+UrlParseResult = _UrlParseSuccess | _UrlParseFailure
 
 # Functions
 

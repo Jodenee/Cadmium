@@ -1,6 +1,6 @@
 import logging
 
-from typing import Callable, List, Optional, Tuple, Union, cast
+from typing import Callable, List, Optional, Tuple, cast
 from pick import Option, pick
 from pytubefix.async_youtube import Stream, StreamQuery
 
