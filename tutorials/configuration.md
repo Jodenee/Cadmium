@@ -1,11 +1,13 @@
 # Configuration
-This tutorial will explain the purpose of each configuration.
+This tutorial will explain the purpose of each configuration as well as how to manipulate the configuration file.
 
 ## Introduction
 
-All Cadmium's configurations are stored inside `configuration.json` found inside the same folder as Cadmium.
+All of Cadmium's configurations are stored inside the `configuration.json` file found inside the same folder as Cadmium. For the remainder of this tutorial it shall be referred as the configurations file.
 
-When opening `configuration.json` for the first time you will be met with the following.
+When opening the configurations file for the first time you will be met with the following contents, while it may be a bit overwhelming at first it's quite simple to learn and understand with this tutorial aiding you.
+
+Please remember if at any time a mistake is made while editing the configurations file it can be safely deleted, and a fresh one will be created automatically by just running Cadmium.
 
 ```json
 {
@@ -66,20 +68,18 @@ When opening `configuration.json` for the first time you will be met with the fo
 ## Editing `configuration.json`
 A short guide for editing Cadmium's configurations. 
 
-## Important
-* In the case of a mistake while editing the `configuration.json` file, the `configuration.json` file may be safely deleted, and a new one will be created automatically by Cadmium when run containing the default configurations.
+### Enabling and disabling a configuration
+* `true` and `false` can be thought of as `on` and `off` respectfully, so when you wish to enable a configuration you write `true` and to disable a configuration you instead write `false`.
 
-## Booleans
-* `true` and `false` can be thought of as `on` and `off` respectfully, so when you wish to enable a configuration you use `true` and to disable a configuration you use `false`.
+### Configurations requiring text input
+* The way computers understand text is by wrapping the actual words you wish for it to read in double quotation marks so `"words go here"` is how text is stored, so when a computer sees `"mp4"` it reads the text within the double quotation marks and ends up with `mp4`. 
 
-## Strings
-* A string is simply how computers understand text so "words go here" is how text is stored, so `""` is simply a string containing no text and `"mp4"` is a string that stores the text `mp4`. 
-
-* It is **VERY IMPORTANT** to note that when pasting a file path on Windows such as `C:\my_folder\downloads` you will need to replace the backslashes `\` with a double backslash `\\`, the result should look similar to this `C:\\my_folder\\downloads`, the reason for this need is quite complex and wont be explained here but for those who are curious here is a [source](https://stackoverflow.com/a/59391584).
+* It is **VERY IMPORTANT** to note that when inputting a file path on Windows such as `C:\my_folder\downloads` you will need to replace the backslashes `\` with a double backslash `\\`, the result should look similar to this `C:\\my_folder\\downloads`, the reason for this need is quite complex and wont be explained here but for those who are curious here is a [source](https://stackoverflow.com/a/59391584).
 
 ## Configuration Guide
+A comprehensive guide detailing each configuration in detail.
 
-### Navigation Links
+### Navigation
 * [Download Behavior Configuration](#download-behavior-configuration)
 * [Quality Of Life Configuration](#quality-of-life-configuration)
 * [Warning Configuration](#warning-configuration)
@@ -113,11 +113,11 @@ A short guide for editing Cadmium's configurations.
 | `use_audio_only_download_location_override`   | `false` | Whether to put "video only" downloads inside the folder specified in `audio_only_download_location_override`.                         |
 | `use_best_of_both_download_location_override` | `false` | Whether to put "best of both" downloads inside the folder specified in `best_of_both_download_location_override`.                     |
 | `use_custom_download_location_override`       | `false` | Whether to put "custom" downloads inside the folder specified in `custom_download_location_override`.                                 |
-| `video_download_location_override`            | `""`    | If `use_video_download_location_override` is enabled, "video" downloads will be put inside the specified folder here.                 |
-| `video_only_download_location_override`       | `""`    | If `use_video_only_download_location_override` is enabled, "video only" downloads will be put inside the specified folder here.       |
-| `audio_only_download_location_override`       | `""`    | If `use_audio_only_download_location_override` is enabled, "audio only" downloads will be put inside the specified folder here.       |
-| `best_of_both_download_location_override`     | `""`    | If `use_best_of_both_download_location_override` is enabled, "best of both" downloads will be put inside the specified folder here.   |
-| `custom_download_location_override`           | `""`    | If `use_custom_download_location_override` is enabled, "custom" downloads will be put inside the specified folder here.               |
+| `video_download_location_override`            | `""`    | If `use_video_download_location_override` is enabled, "video" downloads will be put inside the path specified here..                  |
+| `video_only_download_location_override`       | `""`    | If `use_video_only_download_location_override` is enabled, "video only" downloads will be put inside the path specified here..        |
+| `audio_only_download_location_override`       | `""`    | If `use_audio_only_download_location_override` is enabled, "audio only" downloads will be put inside the path specified here..        |
+| `best_of_both_download_location_override`     | `""`    | If `use_best_of_both_download_location_override` is enabled, "best of both" downloads will be put inside the path specified here.     |
+| `custom_download_location_override`           | `""`    | If `use_custom_download_location_override` is enabled, "custom" downloads will be put inside the path specified here.                 |
 | `put_playlist_videos_in_folder`               | `true`  | If enabled, when downloading playlists a folder will be made to contain the playlist's videos.                                        |
 | `put_channel_videos_in_folder`                | `true`  | If enabled, when downloading channels a folder will be made to contain the channel's videos.                                          |
 | `put_custom_streams_in_folder`                | `true`  | If enabled, when downloading custom streams a folder will be made to contain the video's streams.                                     |
@@ -125,9 +125,9 @@ A short guide for editing Cadmium's configurations.
 
 ### Warning Configuration
 
-| Setting                                      | Default | Description                                                                                                                                                                     |
-|----------------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `silence_existing_temporary_files_warning`   | `false` | Whether to display a warning at the start of the download process if temporary files exist. Enable `clear_temporary_files_before_exiting` for automatic removal of these files. |
+| Setting                                      | Default | Description                                                                                                                                                                 |
+|----------------------------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `silence_existing_temporary_files_warning`   | `false` |  If enabled, Cadmium will not display warnings if temporary files exist. Enable `automatically_delete_temporary_files_after_download` for automatic removal of these files. |
 
 ### UI Configuration
 
@@ -154,4 +154,4 @@ A short guide for editing Cadmium's configurations.
 |-----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
 | `enabled` | `true`  | If enabled, Cadmium will log debugging information locally on your computer in case a bug occurs you will need to submit these logs with the issue. |
 
-If you are still not sure how a particular configuration works feel free to create an issue and await an answer.
+If you are still not sure how a particular configuration works feel free to [ask here!](https://github.com/Jodenee/Cadmium/discussions/new?category=q-a)
