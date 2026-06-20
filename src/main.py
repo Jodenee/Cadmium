@@ -152,7 +152,7 @@ async def main() -> None:
                 indicator=SELECT_MENU_INDICATOR
             )[0].value # type: ignore
 
-            logger.debug("download_format=%s", download_format.name)
+            logger.debug("download_format=%s", download_format)
 
             if download_format == "back":
                 continue
