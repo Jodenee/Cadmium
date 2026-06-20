@@ -248,7 +248,7 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
                 FFmpegFileArgs(temporary_audio_download_result["download_path"]) 
             ), 
             ( 
-                FFmpegFileArgs(converted_file_path, { "c": "copy" } ),
+                FFmpegFileArgs(converted_file_path, { "c:v": "copy" } ),
             ),
             ( 
                 FFmpegOptionArgs("y"), 
