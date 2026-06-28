@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Callable, Optional
 from ffmpeg.asyncio import FFmpeg
-from ffmpeg import Progress
+from ffmpeg.progress import Progress
 
 from ..lib.dataclasses import FFmpegFileArgs, FFmpegOptionArgs
 from .constants import APPLICATION_LOGGER_NAME

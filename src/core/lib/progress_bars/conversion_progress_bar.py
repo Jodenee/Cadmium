@@ -1,7 +1,7 @@
 import logging
 
 from tqdm.asyncio import tqdm
-from ffmpeg import Progress
+from ffmpeg.progress import Progress
 
 from ...custom_types import Configuration
 from ...enums import Colours
