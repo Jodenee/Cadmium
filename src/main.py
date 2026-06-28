@@ -41,7 +41,7 @@ pick.KEYS_ENTER += (459, )
 
 from pathlib import Path
 from typing import Optional
-from pick import pick
+from pick import pick, BlessedBackend
 from pytubefix.exceptions import BotDetection
 from sys import exit
 from logging.handlers import RotatingFileHandler
@@ -131,7 +131,8 @@ async def main() -> None:
             pick(
                 [ "Continue" ], 
                 f"WARNING: You have {number_of_existing_temp_files} temporary file(s) that can be removed! ({str(TEMPORARY_FILES_DIRECTORY_PATH)})", 
-                indicator=SELECT_MENU_INDICATOR
+                indicator=SELECT_MENU_INDICATOR,
+                backend=BlessedBackend()
             )
 
     while True:
@@ -140,7 +141,8 @@ async def main() -> None:
         main_menu_option: MainMenuOption = pick(
             MAIN_MENU_OPTIONS, 
             f"Cadmium - v{__version__} (https://github.com/Jodenee/Cadmium)", 
-            indicator=SELECT_MENU_INDICATOR
+            indicator=SELECT_MENU_INDICATOR,
+            backend=BlessedBackend()
         )[0].value # type: ignore
 
         logger.debug("main_menu_option=%s", main_menu_option.name)
@@ -149,7 +151,8 @@ async def main() -> None:
             download_format: DownloadFormat = pick(
                 DOWNLOAD_FORMAT_MENU_OPTIONS, 
                 "Which format should the videos be downloaded as", 
-                indicator=SELECT_MENU_INDICATOR
+                indicator=SELECT_MENU_INDICATOR,
+                backend=BlessedBackend()
             )[0].value # type: ignore
 
             logger.debug("download_format=%s", download_format)
@@ -196,7 +199,8 @@ async def main() -> None:
                 pick(
                     [ "return to main menu" ], 
                     f"No YouTube urls found in ({str(TO_DOWNLOAD_FILE_PATH)}).",
-                    SELECT_MENU_INDICATOR
+                    SELECT_MENU_INDICATOR,
+                    backend=BlessedBackend()
                 )
                 continue
 

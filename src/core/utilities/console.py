@@ -1,7 +1,7 @@
 import logging
 
 from typing import Callable, List, Optional, Tuple, cast
-from pick import Option, pick
+from pick import Option, pick, BlessedBackend
 from pytubefix.async_youtube import Stream, StreamQuery
 
 from core.custom_types.collection_download_result import CollectionDownloadResult
@@ -101,7 +101,7 @@ def pick_from_streams(streams: StreamQuery, label_generator: Optional[Callable[[
         Option(
             f"stream {stream.itag}" if not label_generator else label_generator(stream),
             stream, 
-            stream_repr(stream)
+            stream_repr(stream),
         ) for stream in streams 
     ]
     stream_pick_menu = cast(List[Tuple[Option, int]], pick(
@@ -109,7 +109,8 @@ def pick_from_streams(streams: StreamQuery, label_generator: Optional[Callable[[
         "Pick the streams you wish to download. [Spacebar] to select/deselect and [Enter] to download.", 
         indicator=SELECT_MENU_INDICATOR, 
         multiselect=True,
-        min_selection_count=1
+        min_selection_count=1,
+        backend=BlessedBackend()
     ))
     picked_streams = cast(List[Stream], [ picked_option[0].value for picked_option in stream_pick_menu ])
 
