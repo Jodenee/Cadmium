@@ -87,8 +87,9 @@ jobs:
       - name: Build application
         shell: bash
         run: |
-          source venv/bin/activate
-
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            source venv/bin/activate
+          
           VERSION="${{ github.event.release.tag_name }}"
 
           pyinstaller --onedir --clean --noconfirm \
