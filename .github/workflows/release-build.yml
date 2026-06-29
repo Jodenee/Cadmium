@@ -64,7 +64,12 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           apt-get update
-          apt-get install -y binutils patchelf libffi8
+          apt-get install -y \
+            libffi8 \
+            libssl3 \
+            binutils \
+            libncursesw6 \
+            libtinfo6
 
 
       # Install Python dependencies
@@ -103,8 +108,6 @@ jobs:
       - name: Initialise files
         shell: bash
         run: |
-          echo "$PWD"
-
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             ./dist/Cadmium/Cadmium.exe --initialise_only
           elif [[ "${{ runner.os }}" == "Linux" ]]; then
