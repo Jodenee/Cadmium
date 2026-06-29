@@ -70,8 +70,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "--initialise_only", 
-    action="store_true",
-    default="store_false"
+    action="store_true"
 )
 
 # constant values
