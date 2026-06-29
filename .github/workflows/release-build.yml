@@ -53,44 +53,27 @@ jobs:
         uses: actions/checkout@v7
 
 
-      # Install Python (Windows)
-      - name: Setup Python (Windows)
-        if: runner.os == 'Windows'
+      # Install Python
+      - name: Setup Python 
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
 
-      # Install Python (Linux / Debian)
-      - name: Install Python (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          apt-get update
-          apt-get install -y python3 python3-pip python3-venv
-
-
-      # Install dependencies (Windows)
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-            python -m pip install --upgrade pip
-            python -m pip install -r src/requirements.txt
-
-
-      # Install dependencies (Linux / Debian)
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+      # Install Python dependencies
+      - name: Install Python dependencies
         shell: bash
         run: |
-            apt-get update
-            apt-get install -y python3 python3-pip python3-venv
+            if [[ "${{ runner.os }}" == "Windows" ]]; then
+              python -m pip install --upgrade pip
+              python -m pip install -r src/requirements.txt
+            elif [[ "${{ runner.os }}" == "Linux" ]]; then
+              python3 -m venv venv
+              source venv/bin/activate
 
-            python3 -m venv venv
-            source venv/bin/activate
-
-            pip install --upgrade pip
-            pip install -r src/requirements.txt
+              pip install --upgrade pip
+              pip install -r src/requirements.txt
+            fi
 
 
       # Build 
@@ -117,7 +100,7 @@ jobs:
 
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             ./dist/Cadmium/Cadmium.exe --initialise_only
-          else
+          elif [[ "${{ runner.os }}" == "Linux" ]]; then
             ./dist/Cadmium/Cadmium --initialise_only
           fi
 
@@ -131,7 +114,7 @@ jobs:
 
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             7z a "../Cadmium-${VERSION}-${{ matrix.name }}.zip" *
-          else
+          elif [[ "${{ runner.os }}" == "Linux" ]]; then
             tar -czf "../Cadmium-${VERSION}-${{ matrix.name }}.tar.gz" *
           fi
 
