@@ -64,7 +64,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           apt-get update
-          apt-get install -y binutils patchelf
+          apt-get install -y binutils patchelf libffi8
 
 
       # Install Python dependencies
