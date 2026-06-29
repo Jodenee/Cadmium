@@ -27,6 +27,7 @@ __version__ = "1.1.0"
 import asyncio
 import pick
 import logging
+import argparse
 
 # configure custom keybinds
 
@@ -60,6 +61,19 @@ from core.utilities.constants import CONFIGURATION_FILE_PATH, DEFAULT_DOWNLOAD_L
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
+parser = argparse.ArgumentParser(
+    description=(
+        "Cadmium is a python command line application made to conveniently download youtube videos for without the risk of accidentally " 
+        "installing malware or getting overwhelmed with ads. It's a great all in one tool that has all the features you'll ever need for downloading youtube videos."
+    ),
+    add_help=False
+)
+parser.add_argument(
+    "--initialise_only", 
+    action="store_true",
+    default="store_false"
+)
+
 # constant values
 
 configuration: Configuration = load_configuration(CONFIGURATION_FILE_PATH)
@@ -68,6 +82,8 @@ progress_bar_factory = ProgressBarFactory(configuration)
 # Program
 
 def bootstrap() -> None:
+    parsed_arguments = parser.parse_args()
+
     # Create configuration file if it does not exist
     if not CONFIGURATION_FILE_PATH.exists(): 
         create_configuration_file(CONFIGURATION_FILE_PATH)
@@ -99,6 +115,13 @@ def bootstrap() -> None:
     handler.setFormatter(formatter)
     global_logger.addHandler(handler)
 
+    # Ensure required directories and files exist
+    TEMPORARY_FILES_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
+    TO_DOWNLOAD_FILE_PATH.touch()
+
+    if parsed_arguments.initialise_only:
+        exit(0)
+
 
 async def main() -> None:
     bootstrap()
@@ -110,10 +133,6 @@ async def main() -> None:
 
     # Find external dependencies
     ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration)
-
-    # Ensure required directories and files exist
-    TEMPORARY_FILES_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
-    TO_DOWNLOAD_FILE_PATH.touch()
 
     # Initialise objects
     downloader: Downloader = Downloader(
@@ -245,6 +264,8 @@ if __name__ == "__main__":
         spaced_print(f"Fatal Error: {exception}")
     except KeyboardInterrupt:
         logger.info("Exiting application")
+        exit(0)
+    except SystemExit as e:
         exit(0)
     except BaseException:
         logger.exception("cadmium ran into an unexpected exception")
