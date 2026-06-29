@@ -60,6 +60,13 @@ jobs:
           python-version: "3.12"
 
 
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update
+          apt-get install -y binutils patchelf
+
+
       # Install Python dependencies
       - name: Install Python dependencies
         shell: bash
