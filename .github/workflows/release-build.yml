@@ -104,7 +104,7 @@ jobs:
           VERSION="${{ github.event.release.tag_name }}"
 
           pyinstaller --onedir --clean --noconfirm \
-            --name "Cadmium-${VERSION}-${{ matrix.name }}" \
+            --name "Cadmium" \
             --add-data "src/core/bin/ffmpeg/${{ matrix.ffmpeg }}${{ matrix.sep }}core/bin/ffmpeg/${{ matrix.ffmpeg }}" \
             src/main.py
 
@@ -113,8 +113,10 @@ jobs:
       - name: Initialise files
         shell: bash
         run: |
+          echo "$PWD"
+
           if [[ "${{ runner.os }}" == "Windows" ]]; then
-            dist/Cadmium/Cadmium.exe --initialise_only
+            ./dist/Cadmium/Cadmium.exe --initialise_only
           else
             ./dist/Cadmium/Cadmium --initialise_only
           fi
