@@ -64,13 +64,14 @@ logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 parser = argparse.ArgumentParser(
     description=(
         "Cadmium is a python command line application made to conveniently download youtube videos for without the risk of accidentally " 
-        "installing malware or getting overwhelmed with ads. It's a great all in one tool that has all the features you'll ever need for downloading youtube videos."
-    ),
-    add_help=False
+        "installing malware or getting overwhelmed with ads. It's a great all in one tool that has all the features you'll ever need for downloading youtube videos. "
+        "Make sure to check for updates here -> https://github.com/Jodenee/Cadmium/releases/latest"
+    )
 )
 parser.add_argument(
     "--initialise_only", 
-    action="store_true"
+    action="store_true",
+    help="To initialise the files cadmium requires and exit immediately after"
 )
 
 # constant values
