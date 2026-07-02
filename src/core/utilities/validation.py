@@ -11,9 +11,9 @@ def ensure_can_use_ffmpeg(
     """Ensures that ffmpeg can be used by checking if all the required conditions are met.
 
     Args:
-        ffmpeg_executable_path: An optional Path to the ffmpeg executable to be used.
-        file_extension: The file extension to be converted to.
-        file_extension_configuration_name: the file extension configuration name.
+        ffmpeg_executable_path: `Path` to the ffmpeg executable to be used.
+        file_extension: File extension to be converted to.
+        file_extension_configuration_name: File extension configuration name.
 
     Raises:
         InvalidConfigurationError: 

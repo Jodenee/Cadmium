@@ -19,6 +19,8 @@ from ...utilities.os import resolve_safe_file_path
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 class VideoDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
+    """A downloader variant for downloading streams containing video and audio within the same file."""
+
     def __init__(
         self, 
         configuration: Configuration,

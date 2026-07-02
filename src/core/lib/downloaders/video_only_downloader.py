@@ -19,6 +19,8 @@ from ...utilities.os import resolve_safe_file_path
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
+    """A downloader variant for downloading video only streams."""
+
     def __init__(
         self, 
         configuration: Configuration, 

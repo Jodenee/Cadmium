@@ -20,11 +20,11 @@ async def convert_file(
     """Converts one or more files into one or more output files.
 
     Args:
-        ffmpeg_executable_path: A `Path` to the FFmpeg executable to be used.
-        input_file_paths: A list of paths to the files used as input.
-        output_file_paths: A list of paths to be used to create the output files.
-        options: A list of ffmpeg options.
-        progress_callback: A callback function used to track conversion progress.
+        ffmpeg_executable_path: `Path` to the FFmpeg executable to be used.
+        input_file_paths: List of paths to the files used as input.
+        output_file_paths: List of paths to be used to create the output files.
+        options: List of ffmpeg options.
+        progress_callback: Callback function used to track conversion progress.
 
     Raises:
         FFmpegError:

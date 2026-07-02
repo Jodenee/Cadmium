@@ -20,6 +20,8 @@ from ...utilities.pytubefix_extensions import get_youtube_from_stream
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
+    """A downloader variant for downloading specific streams chosen by the user."""
+
     def __init__(
         self, 
         configuration: Configuration, 

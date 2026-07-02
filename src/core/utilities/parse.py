@@ -25,10 +25,10 @@ def parse_youtube_link_type(url: str) -> UrlParseResult:
     """Parses a `MediaType` from a youtube url.
 
     Args:
-        url: A url of either a video, playlist or channel.
+        url: URL of either a video, playlist or channel.
 
     Returns:
-        A tuple containing a success flag and `MediaType` that represents the type of media the provided url leads to.
+        Tuple containing a success flag and `MediaType` that represents the type of media the provided url leads to.
     """
     
     parse_result: UrlParseResult

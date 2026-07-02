@@ -16,6 +16,8 @@ from ...utilities.pytubefix_extensions import stream_repr
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 class VideoDownloaderProtocol[ReturnType](Protocol):
+    """The standard protocol downloader variants must implement"""
+
     _configuration: Configuration
     _progress_bar_factory: ProgressBarFactory
     _ffmpeg_executable_path: Optional[Path]

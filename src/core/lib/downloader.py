@@ -1,27 +1,26 @@
 import logging
 
 from pytubefix.async_youtube import AsyncYouTube
-from pytubefix import Playlist, Stream, StreamQuery, Channel
+from pytubefix import Playlist, StreamQuery, Channel
 from pathlib import Path
 from typing import Optional
 
 from ..lib.temporary_file_storage import TemporaryFileStorage
 from ..custom_types.collection_download_result import CollectionDownloadResult
-from ..utilities.constants import ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE, APPLICATION_LOGGER_NAME
-from ..utilities.console import spaced_print
-from ..utilities.os import resolve_safe_file_path, safe_join_directory
-from ..utilities.pytubefix_extensions import stream_repr
+from ..utilities.constants import APPLICATION_LOGGER_NAME
+from ..utilities.os import safe_join_directory
 
 from .factories import ProgressBarFactory
 from .protocols import VideoDownloaderProtocol
 from .downloaders import VideoDownloader, VideoOnlyDownloader, AudioOnlyDownloader, BestOfBothDownloader, CustomDownloader
 from ..custom_types import Configuration, VideoDownloadResult
 from ..enums import DownloadFormat
-from ..exceptions import ImpossibleDownloadPath
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 class Downloader:
+    "A singleton wrapper class for all the different downloader variants"
+
     def __init__(
         self, 
         configuration: Configuration, 
@@ -35,7 +34,7 @@ class Downloader:
         self.ffmpeg_executable_path = ffmpeg_executable_path
         self.temporary_file_storage = TemporaryFileStorage()
 
-        # Define downloader subclasses
+        # Define downloader variants
 
         self.video_downloader = VideoDownloader(
             self.configuration,
@@ -88,6 +87,18 @@ class Downloader:
         download_directory: Path, 
         filename_prefix: Optional[str] = None
     ) -> list[VideoDownloadResult]:
+        """Download a youtube video
+
+        Args:
+            youtube_video_url: URL to the video.
+            download_format: `DownloadFormat` enum to determine which stream to download.
+            download_directory: `Path` to the directory where the video will be downloaded.
+            filename_prefix: Optional prefix to append to the downloaded filename.
+
+        Returns:
+            A list of `VideoDownloadResult`.
+        """
+
         logger.debug("downloading_video video_url=%s download_format=%s", youtube_video_url, download_format.name)
 
         youtube_video: AsyncYouTube = AsyncYouTube(youtube_video_url)
@@ -142,6 +153,17 @@ class Downloader:
         download_format: DownloadFormat, 
         download_directory: Path
     ) -> CollectionDownloadResult:
+        """Download the contents of a YouTube playlist.
+
+        Args:
+            playlist_url: URL to the playlist.
+            download_format: `DownloadFormat` enum to determine which stream to download.
+            download_directory: `Path` to the directory where the playlist contents will be downloaded.
+
+        Returns:
+            A `CollectionDownloadResult`.
+        """
+
         logger.debug("downloading_playlist playlist_url=%s download_format=%s", playlist_url, download_format)
 
         playlist: Playlist = Playlist(playlist_url)
@@ -185,6 +207,17 @@ class Downloader:
         download_format: DownloadFormat, 
         download_directory: Path
     ) -> CollectionDownloadResult:
+        """Download the contents of a YouTube channel.
+
+        Args:
+            channel_url: URL to the channel.
+            download_format: `DownloadFormat` enum to determine which stream to download.
+            download_directory: `Path` to the directory where the channel contents will be downloaded.
+
+        Returns:
+            A `CollectionDownloadResult`.
+        """
+
         logger.debug("downloading_channel channel_url=%s download_format=%s", channel_url, download_format)
 
         channel: Channel = Channel(channel_url)
@@ -220,84 +253,3 @@ class Downloader:
             "failed_downloads": failed_downloads,
             "download_directory_path": true_download_directory,
         }
-
-
-    async def _download_stream(
-        self, 
-        youtube_video: AsyncYouTube, 
-        stream: Stream, 
-        download_directory: Path, 
-        skip_existing_files: bool,
-        filename_prefix: Optional[str] = None
-    ) -> VideoDownloadResult:
-        youtube_video_title = await youtube_video.title()
-        fallback_filename = f"Video ({youtube_video.video_id})" if stream.includes_video_track else f"Audio ({youtube_video.video_id})"
-
-        logger.debug(
-            "downloading_stream video_id=%s stream_itag=%s download_directory=%s video_title=%s", 
-            youtube_video.video_id, 
-            stream.itag, 
-            download_directory, 
-            youtube_video_title
-        )
-        
-        try:
-            video_full_file_path = resolve_safe_file_path(
-                download_directory,
-                stream.default_filename,
-                fallback_filename,
-                filename_prefix
-            )
-        except ImpossibleDownloadPath as exception:
-            logger.debug("download_cancelled due to an impossible download path video_id=%s", youtube_video.video_id)
-
-            return {
-                "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str(exception)
-            }
-        
-        if video_full_file_path.exists() and skip_existing_files:
-            logger.debug("download_cancelled A file already existing with the same name video_id=%s stream_itag=%s path=%s", youtube_video.video_id, stream.itag, video_full_file_path)
-
-            return {
-                "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=video_full_file_path)
-            }
-
-        if self.configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
-            spaced_print(f"Chosen stream info: {stream_repr(stream)}")
-
-        download_bar = self.progress_bar_factory.download(
-            f"Downloading ({youtube_video_title})", 
-            stream.filesize,
-            youtube_video
-        )
-
-        download_path: Optional[str] = stream.download(
-            output_path=str(download_directory), 
-            skip_existing=skip_existing_files,
-            filename=video_full_file_path.name
-        )
-
-        download_bar.close()
-
-        if (download_path == None):
-            logger.debug("download_cancelled due to user intervention video_id=%s stream_itag=%s", youtube_video.video_id, stream.itag)
-
-            return {
-                "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str.format(VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE, video_title=youtube_video_title)
-            } 
-        
-        return {
-            "success": True,
-            "youtube_video": youtube_video,
-            "download_path": Path(download_path),
-            "error_message": None
-        } 

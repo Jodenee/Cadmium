@@ -73,11 +73,11 @@ DEFAULT_CONFIGURATION: Configuration = {
 # Constant paths
 
 if getattr(sys, "frozen", False):
-    # If run as an exe
+    # If ran as an executable file
     PROJECT_ROOT_DIRECTORY: Path = Path(sys.executable).parent.resolve()
     BINARIES_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "_internal" / "core" / "bin"
 else:
-    # if run with python interpreter
+    # if ran with Python
     PROJECT_ROOT_DIRECTORY: Path = Path(__file__).parents[2].resolve() 
     BINARIES_DIRECTORY_PATH: Path = PROJECT_ROOT_DIRECTORY / "core" / "bin"
 

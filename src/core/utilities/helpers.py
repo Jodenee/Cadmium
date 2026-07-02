@@ -10,9 +10,9 @@ def choose[K, T](key: K, map: dict[K, T], default: T) -> T:
     """Chooses a value from a dictionary using a provided key.
 
     Args:
-        key: An optional Path to the ffmpeg executable to be used.
-        map: The file extension to be converted to.
-        default: the file extension configuration name.
+        key: Key to access the map
+        map: Map containing various keys and values
+        default: the default key to use in case of a `KeyError`.
 
     Returns:
         A value from the dictionary, if the key does not exist the default value is returned.
@@ -28,10 +28,10 @@ def collapse_whitespace(text: str) -> str:
     """Collapses whitespace in the provided text.
 
     Args:
-        text: A `string`.
+        text: the text to modify.
 
     Returns:
-        A string with collapsed whitespace 
+        The text with collapsed whitespace 
 
     Examples:
         >>> collapse_whitespace("Hello,  World!")

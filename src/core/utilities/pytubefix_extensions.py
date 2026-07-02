@@ -5,7 +5,7 @@ def stream_repr(stream: Stream) -> str:
     """Produces a user friendly description of a stream. 
 
     Args:
-        stream: A `Stream`.
+        stream: `Stream` to repr.
 
     Returns:
         A user friendly description of the stream.
@@ -22,7 +22,7 @@ def stream_repr(stream: Stream) -> str:
         f"fps: {fps}",                                    
         f"resolution: {stream.resolution}",              
         f"bitrate: {bitrate}",              
-        f"file size (MB): {stream.filesize_mb}",
+        f"file size in MB: {stream.filesize_mb}",
         f"video codec: {stream.video_codec}",
         f"audio codec: {stream.audio_codec}"
     ))
@@ -31,6 +31,15 @@ def stream_repr(stream: Stream) -> str:
 
 
 def get_youtube_from_stream(stream: Stream) -> YouTube | AsyncYouTube:
+    """Retrieves the `YouTube` instance from the given stream.
+
+    Args:
+        stream: `Stream` to extract the YouTube instance from.
+
+    Returns:
+        `YouTube` or `AsyncYouTube` depending if the async api was used to fetch the stream.
+    """
+
     youtube = stream._monostate.youtube
 
     if isinstance(youtube, YouTube):

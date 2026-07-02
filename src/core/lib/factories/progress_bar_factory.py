@@ -4,6 +4,8 @@ from ..progress_bars import ClearDirectoryProgressBar, ConversionProgressBar, Do
 from ...custom_types import Configuration
 
 class ProgressBarFactory:
+    """A singleton factory for creating progress bars"""
+
     def __init__(self, configuration: Configuration) -> None:
         self.configuration: Configuration = configuration
 

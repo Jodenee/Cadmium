@@ -27,7 +27,7 @@ def get_os() -> OperatingSystem:
     operating system cannot be determined.
 
     Returns:
-        A `OperatingSystem` enum representing the current operating system.
+        `OperatingSystem` enum representing the current operating system.
     """
 
     raw_operating_system = system().upper()
@@ -49,7 +49,7 @@ def get_cpu_architecture() -> CpuArchitecture:
     CPU architecture is not officially supported.
 
     Returns:
-        A `OperatingSystem` enum representing the current operating system.
+        `OperatingSystem` enum representing the current operating system.
     """
 
     raw_cpu_architecture_map: dict[str, CpuArchitecture] = {
@@ -91,12 +91,12 @@ def safe_os_name(name: str, fallback_name: str, max_length: int = MAX_OS_FILENAM
     empty or filled with only whitespace, the fallback name is returned.
 
     Args:
-        name: A `string` containing the name to be sanitized.
-        fallback_name: A fallback name if after sanitization the string is empty or filled with only whitespace.
+        name: Name to be sanitized.
+        fallback_name: Fallback name if after sanitization the string is empty or filled with only whitespace.
         max_length: The maximum length of the name.
 
     Returns:
-        The sanitized `string`.
+        The sanitized name.
     """
 
     replace_regex: Pattern[str] = choose(OPERATING_SYSTEM, {
@@ -138,11 +138,11 @@ def safe_full_filename(
     empty or filled with only whitespace, the fallback filename is returned.
 
     Args:
-        full_filename: A full filename (including extension).
-        fallback_filename: A fallback filename if after sanitization the filename is empty or filled with only whitespace.
-        filename_prefix: An optional prefix for the filename.
-        max_length: The maximum length the filename (including extension) must conform to.
-        extension_override: An optional override for the filename's extension.
+        full_filename: Full filename (including extension).
+        fallback_filename: Fallback filename if after sanitization the filename is empty or filled with only whitespace.
+        filename_prefix: Prefix for the filename.
+        max_length: Maximum length the filename (including extension) must conform to.
+        extension_override: Override for the filename's extension.
     Returns:
         The sanitized filename.
     """
@@ -171,9 +171,9 @@ def safe_join_directory(
     """Safely joins a directory with another ensuring the operating system's path limit is not exceeded.
 
     Args:
-        base: A `Path` to a directory.
-        name: The name of the directory to join with `base`.
-        fallback_name: A fallback directory name if after sanitization the directory name is empty or filled with only whitespace.
+        base: `Path` to a directory.
+        name: Name of the directory to join with `base`.
+        fallback_name: Fallback directory name if after sanitization the directory name is empty or filled with only whitespace.
 
     Returns:
         The joined `Path`.
@@ -211,11 +211,11 @@ def resolve_safe_file_path(
     """Safely joins a directory with a filename by ensuring it does not exceed the operating systems path length limit.
 
     Args:
-        directory: A `Path` to a directory.
-        filename: The filename to be joined with `directory`.
-        fallback_filename: A fallback filename if after sanitization the filename is empty or filled with only whitespace.
-        filename_prefix: An optional prefix to be added to the filename.
-        extension_override: An optional override for the filename's extension.
+        directory: `Path` to a directory.
+        filename: Filename to be joined with `directory`.
+        fallback_filename: Fallback filename if after sanitization the filename is empty or filled with only whitespace.
+        filename_prefix: Prefix to be added to the filename.
+        extension_override: Override for the filename's extension.
 
     Returns:
         The resolved full `Path` of the file.
@@ -256,8 +256,8 @@ def count_directory_files(directory: Path, with_extensions: list[str]) -> int:
     """Counts how many files are inside `directory` with a extensions in `with_extensions`.
 
     Args:
-        directory: A `Pathlike` that leads to a directory.
-        with_extensions: A `List` of file extensions to count.
+        directory: `Pathlike` that leads to a directory.
+        with_extensions: List of file extensions to count.
 
     Returns:
         The total number of files inside `directory` with extension in `with_extensions`.
@@ -273,9 +273,9 @@ def clear_directory_files(directory: Path, with_extensions: list[str], on_progre
     """Clears `directory` of files with extension in `with_extensions`.
 
     Args:
-        directory: A `Path` that leads to a directory.
-        with_extensions: A `List` of file extensions to count.
-        on_progress: A callback function to track the progress of clearing `directory`.
+        directory: `Path` that leads to a directory.
+        with_extensions: List of file extensions to count.
+        on_progress: Callback function to track the progress of clearing `directory`.
     """
 
     logger.info("removing all files from directory %s with extensions %s", directory, with_extensions)
@@ -299,7 +299,7 @@ def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
     """Attempts to find an FFmpeg binary according with the user's configurations.
 
     Args:
-        configuration: The user's configurations.  
+        configuration: Cadmium's current configurations.  
 
     Returns:
         An optional `Path` to an FFmpeg binary.

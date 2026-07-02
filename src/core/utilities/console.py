@@ -18,7 +18,7 @@ def spaced_print(*values, sep: Optional[str] = "", flush: bool = False, end: Opt
 
     Args:
         values:
-            A `Tuple` of values to output.
+            Tuple of values to output.
         sep:
             `string` inserted between values, default an empty string.
         end:
@@ -35,7 +35,7 @@ async def print_failed_downloads(failed_downloads: List[VideoDownloadResult]) ->
 
     Args:
         failed_downloads:
-            A `List` of `VideoDownloadResult` to show the user.
+            List of `VideoDownloadResult` to show the user.
     """
 
     information_text = []
@@ -56,7 +56,7 @@ async def display_video_download_result(results: List[VideoDownloadResult]) -> N
 
     Args:
         failed_downloads:
-            A `List` of `VideoDownloadResult` to show the user.
+            List of `VideoDownloadResult` to show the user.
     """
 
     for result in results:
@@ -71,7 +71,7 @@ async def display_collection_download_result(result: CollectionDownloadResult) -
 
     Args:
         result:
-            A `CollectionDownloadResult` to show the user.
+            `CollectionDownloadResult` to show the user.
     """
 
     if result["success"]:
@@ -88,13 +88,13 @@ def pick_from_streams(streams: StreamQuery, label_generator: Optional[Callable[[
 
     Args:
         streams:
-            A collection of streams the user must choose from.
+            Collection of streams the user must choose from.
         label_generator:
-            A callback function to allow customization of label generation. By default labels 
+            Callback function to allow customization of label generation. By default labels 
             are generated in the following format "stream {stream_itag}".
 
     Returns:
-        A `List` of `Stream` chosen by the user.
+        List of `Stream` chosen by the user.
     """
 
     options = [ 

@@ -20,6 +20,8 @@ from ...utilities.os import resolve_safe_file_path, safe_join_directory
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
 class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
+    """A downloader variant for downloading audio only and video only streams."""
+
     def __init__(
         self, 
         configuration: Configuration, 
