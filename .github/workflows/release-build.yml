@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Windows x64
+          # Windows x86_64 (AMD64)
           - name: windows-x64
             os: windows-2025
             ffmpeg: windows_64
@@ -27,7 +27,7 @@ jobs:
             sep: ";"
 
 
-          # Linux x64
+          # Linux x86_64 (AMD64)
           - name: linux-x64
             os: ubuntu-24.04
             container: debian:13
@@ -40,6 +40,12 @@ jobs:
             os: ubuntu-24.04-arm
             container: debian:13
             ffmpeg: linux_arm64
+            sep: ":"
+
+          # macOS x86_64 (Intel)
+          - name: macos-x64
+            os: macos-15-intel
+            ffmpeg: macos_64
             sep: ":"
 
 
@@ -76,7 +82,7 @@ jobs:
       - name: Install Python dependencies
         shell: bash
         run: |
-            if [[ "${{ runner.os }}" == "Windows" ]]; then
+            if [[ "${{ runner.os }}" == "Windows" || "${{ runner.os }}" == "macOS" ]]; then
               python -m pip install --upgrade pip
               python -m pip install -r src/requirements.txt
             elif [[ "${{ runner.os }}" == "Linux" ]]; then
@@ -110,7 +116,7 @@ jobs:
         run: |
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             ./dist/Cadmium/Cadmium.exe --initialise_only
-          elif [[ "${{ runner.os }}" == "Linux" ]]; then
+          elif [[ "${{ runner.os }}" == "Linux" || "${{ runner.os }}" == "macOS"  ]]; then
             ./dist/Cadmium/Cadmium --initialise_only
           fi
 
@@ -124,7 +130,7 @@ jobs:
 
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             7z a "../Cadmium-${VERSION}-${{ matrix.name }}.zip" *
-          elif [[ "${{ runner.os }}" == "Linux" ]]; then
+          elif [[ "${{ runner.os }}" == "Linux" || "${{ runner.os }}" == "macOS" ]]; then
             tar -czf "../Cadmium-${VERSION}-${{ matrix.name }}.tar.gz" *
           fi
 
