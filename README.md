@@ -20,7 +20,7 @@ Cadmium is a python command line application made to conveniently download youtu
 |------------------|--------|-------|
 | Windows 10/11    | ✅     | ✅   |
 | Linux            | ✅     | ✅   |
-| macOS            | 🚧     | 🚧   |
+| macOS            | ✅     | 🚧   |
 
 ## Download instructions for the prebuilt executable (Recommended for most users)
 This section will help instruct you through the download process, please note that this is for the prebuilt executable file. If you wish to build or run the source code please follow this [tutorial](./tutorials/building_cadmium.md) instead. 
