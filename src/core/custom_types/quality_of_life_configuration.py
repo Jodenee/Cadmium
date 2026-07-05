@@ -8,4 +8,3 @@ class QualityOfLifeConfiguration(TypedDict):
     put_channel_videos_in_folder: bool
     put_custom_streams_in_folder: bool
     display_chosen_stream_on_start_of_download: bool
-    clear_temporary_files_before_exiting: bool

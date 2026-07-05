@@ -1,6 +1,8 @@
 from typing import Optional, TypedDict
 
 class FFmpegConfiguration(TypedDict):
-    try_find_ffmpeg_path_automatically: bool
-    ffmpeg_executable_path: Optional[str]
+    use_ffmpeg: bool
+    use_packaged_ffmpeg: bool
+    use_path_ffmpeg: bool
+    custom_ffmpeg_executable_path: Optional[str]
     

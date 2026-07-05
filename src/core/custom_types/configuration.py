@@ -5,6 +5,7 @@ from .warning_configuration import WarningConfiguration
 from .download_behavior_configuration import DownloadBehaviorConfiguration
 from .ui_configuration import UIConfiguration
 from .external_dependency_configuration import ExternalDependencyConfiguration
+from .logging_configuration import LoggingConfiguration
 
 class Configuration(TypedDict):
     download_behavior_configuration: DownloadBehaviorConfiguration
@@ -12,3 +13,4 @@ class Configuration(TypedDict):
     warning_configuration: WarningConfiguration
     ui_configuration: UIConfiguration
     external_dependency_configuration: ExternalDependencyConfiguration
+    logging_configuration: LoggingConfiguration

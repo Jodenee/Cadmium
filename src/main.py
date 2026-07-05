@@ -22,11 +22,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 import asyncio
-import sys
 import pick
+import logging
+import argparse
 
 # configure custom keybinds
 
@@ -40,212 +41,215 @@ pick.KEYS_SELECT += (ARROW_KEY_RIGHT, ord("d") )
 pick.KEYS_ENTER += (459, )
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
-from traceback import format_exc as get_traceback
-from pick import Option, pick
+from typing import Optional
+from pick import pick, BlessedBackend
 from pytubefix.exceptions import BotDetection
 from sys import exit
+from logging.handlers import RotatingFileHandler
 
 from core.enums import DownloadFormat, MediaType
 from core.enums.main_menu_option import MainMenuOption
-from core.exceptions import InvalidConfigurationError, ImpossibleDownloadPath
-from core.custom_types import Configuration, DownloadConfiguration
-from core.lib import ClearDirectoryDisplay
+from core.exceptions import InvalidConfigurationError
+from core.custom_types import Configuration
+from core.lib import Downloader, ProgressBarFactory
 from core.utilities.configuration import load_configuration, create_configuration_file
-from core.utilities.console import print_failed_downloads, spaced_print
-from core.utilities.download import Downloader
-from core.utilities.os import clear_console, clear_directory_files, count_directory_files, try_find_ffmpeg
+from core.utilities.console import display_collection_download_result, display_video_download_result, spaced_print
+from core.utilities.os import clear_console, count_directory_files, try_find_ffmpeg, OPERATING_SYSTEM, CPU_ARCHITECTURE
 from core.utilities.parse import parse_youtube_link_type
+from core.utilities.constants import CONFIGURATION_FILE_PATH, DEFAULT_DOWNLOAD_LOCATIONS_MAP, DOWNLOAD_FORMAT_MENU_OPTIONS, DOWNLOADS_DIRECTORY_PATH, MAIN_MENU_OPTIONS, SELECT_MENU_INDICATOR, \
+    TEMPORARY_FILE_EXTENSIONS, TEMPORARY_FILES_DIRECTORY_PATH, TO_DOWNLOAD_FILE_PATH, LOGGING_DIRECTORY_PATH, APPLICATION_LOGGER_NAME
 
-# required + default files/directories
+logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
-if getattr(sys, "frozen", False):
-    project_root_directory: Path = Path(sys.executable).parent.resolve() # If run as an exe
-else:
-    project_root_directory: Path = Path(__file__).parent.resolve() # if run with python interpreter
-
-to_download_file: Path = project_root_directory.joinpath("to_download.txt")
-configuration_file_path: Path = project_root_directory.joinpath("configuration.json")
-temporary_files_directory_path: Path = project_root_directory.joinpath("temporary_files")
-downloads_directory_path: Path = project_root_directory.joinpath("downloads")
-
-default_video_download_directory_path: Path = downloads_directory_path.joinpath("video")
-default_video_only_download_directory_path: Path = downloads_directory_path.joinpath("video_only")
-default_audio_download_directory_path: Path = downloads_directory_path.joinpath("audio_only")
-default_best_of_both_download_directory_path: Path = downloads_directory_path.joinpath("best_of_both")
-default_custom_download_directory_path: Path = downloads_directory_path.joinpath("custom")
+parser = argparse.ArgumentParser(
+    description=(
+        "Cadmium is a python command line application made to conveniently download youtube videos for without the risk of accidentally " 
+        "installing malware or getting overwhelmed with ads. It's a great all in one tool that has all the features you'll ever need for downloading youtube videos. "
+        "Make sure to check for updates here -> https://github.com/Jodenee/Cadmium/releases/latest"
+    )
+)
+parser.add_argument(
+    "--initialise_only", 
+    action="store_true",
+    help="To initialise the files cadmium requires and exit immediately after"
+)
 
 # constant values
 
-configuration: Configuration = load_configuration(configuration_file_path)
-temporary_file_extensions = [ ".webm", ".m4a", ".mp4", ".mp3" ]
-select_menu_indicator = ">"
-main_menu_options: Tuple[Option, ...] = (
-    Option(MainMenuOption.DOWNLOAD.value, MainMenuOption.DOWNLOAD, "Download videos."),
-    Option(f"{MainMenuOption.EDIT_CONFIGURATION.value} (Coming soon)", MainMenuOption.EDIT_CONFIGURATION, "Edit Cadmium's configuration.", enabled=False),
-    Option(MainMenuOption.EXIT.value, MainMenuOption.EXIT, "Exit the program.")
-)
-download_format_menu_options: Tuple[Option, ...] = (
-    Option(DownloadFormat.VIDEO.value, DownloadFormat.VIDEO, "Downloads both video and audio tracks but at low quality."), 
-    Option(DownloadFormat.VIDEO_ONLY.value, DownloadFormat.VIDEO_ONLY, "Downloads only the video track but at high quality."), 
-    Option(DownloadFormat.AUDIO_ONLY.value, DownloadFormat.AUDIO_ONLY, "Downloads only the audio track but at high quality."), 
-    Option(DownloadFormat.BEST_OF_BOTH.value, DownloadFormat.BEST_OF_BOTH, "Downloads both the video and audio tracks but at high quality."),
-    Option(DownloadFormat.CUSTOM.value, DownloadFormat.CUSTOM, "Downloads any streams of your choosing."),
-    Option("back", "back", "Go back to the main menu without downloading anything.")
-)
-download_format_to_custom_download_configuration: Dict[DownloadFormat, DownloadConfiguration] = {
-    DownloadFormat.VIDEO: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_video_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["video_download_location_override"],
-        "default_download_location": default_video_download_directory_path
-    },
-    DownloadFormat.VIDEO_ONLY: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_video_only_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["video_only_download_location_override"],
-        "default_download_location": default_video_only_download_directory_path
-    },
-    DownloadFormat.AUDIO_ONLY: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_audio_only_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["audio_only_download_location_override"],
-        "default_download_location": default_audio_download_directory_path
-    },
-    DownloadFormat.BEST_OF_BOTH: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_best_of_both_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["best_of_both_download_location_override"],
-        "default_download_location": default_best_of_both_download_directory_path
-    },
-    DownloadFormat.CUSTOM: {
-        "use_download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["use_custom_download_location_override"],
-        "download_location_override": configuration["quality_of_life_configuration"]["download_location_overrides"]["custom_download_location_override"],
-        "default_download_location": default_custom_download_directory_path
-    }
-}
+configuration: Configuration = load_configuration(CONFIGURATION_FILE_PATH)
+progress_bar_factory = ProgressBarFactory(configuration)
 
-# find external dependencies
+# Program
 
-ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration)
+def bootstrap() -> None:
+    parsed_arguments = parser.parse_args()
 
-# program
+    # Create configuration file if it does not exist
+    if not CONFIGURATION_FILE_PATH.exists(): 
+        create_configuration_file(CONFIGURATION_FILE_PATH)
+
+    # Configure application logging
+    global_logger = logging.getLogger()
+
+    global_logger.handlers.clear()
+
+    global_logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    )
+
+    if configuration["logging_configuration"]["enabled"]:
+        LOGGING_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
+
+        handler = RotatingFileHandler(
+            LOGGING_DIRECTORY_PATH / "cadmium.log",
+            maxBytes=2 * 1024 * 1024, # 2MB
+            backupCount=3,
+            encoding="utf-8"
+        )
+    else: 
+        handler = logging.NullHandler()
+
+    handler.setFormatter(formatter)
+    global_logger.addHandler(handler)
+
+    # Ensure required directories and files exist
+    TEMPORARY_FILES_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
+    TO_DOWNLOAD_FILE_PATH.touch()
+
+    if parsed_arguments.initialise_only:
+        exit(0)
+
 
 async def main() -> None:
-    if not configuration_file_path.exists(): 
-        create_configuration_file(configuration_file_path)
+    bootstrap()
 
-    temporary_files_directory_path.mkdir(exist_ok=True)
-    to_download_file.touch()
+    logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
-    downloader: Downloader = Downloader(configuration, select_menu_indicator, temporary_files_directory_path, ffmpeg_executable_path)
+    logger.info("running Cadmium v%s", __version__)
+    logger.debug("OPERATING_SYSTEM=%s CPU_ARCHITECTURE=%s", OPERATING_SYSTEM.name, CPU_ARCHITECTURE.name)
 
+    # Find external dependencies
+    ffmpeg_executable_path: Optional[Path] = try_find_ffmpeg(configuration)
+
+    # Initialise objects
+    downloader: Downloader = Downloader(
+        configuration, 
+        progress_bar_factory, 
+        TEMPORARY_FILES_DIRECTORY_PATH, 
+        ffmpeg_executable_path
+    )
+
+    # Warn user if temporary files exist
     if not configuration["warning_configuration"]["silence_existing_temporary_files_warning"]:
-        number_of_existing_temp_files: int = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
+        number_of_existing_temp_files: int = count_directory_files(TEMPORARY_FILES_DIRECTORY_PATH, TEMPORARY_FILE_EXTENSIONS)
 
         if number_of_existing_temp_files > 0: 
             pick(
                 [ "Continue" ], 
-                f"WARNING: You have {number_of_existing_temp_files} temporary file(s) that can be removed! ({str(temporary_files_directory_path)})", 
-                indicator=select_menu_indicator
+                f"WARNING: You have {number_of_existing_temp_files} temporary file(s) that can be removed! ({str(TEMPORARY_FILES_DIRECTORY_PATH)})", 
+                indicator=SELECT_MENU_INDICATOR,
+                backend=BlessedBackend()
             )
 
     while True:
+        logger.info("viewing main menu")
+
         main_menu_option: MainMenuOption = pick(
-            main_menu_options, 
+            MAIN_MENU_OPTIONS, 
             f"Cadmium - v{__version__} (https://github.com/Jodenee/Cadmium)", 
-            indicator=select_menu_indicator
+            indicator=SELECT_MENU_INDICATOR,
+            backend=BlessedBackend()
         )[0].value # type: ignore
+
+        logger.debug("main_menu_option=%s", main_menu_option.name)
 
         if main_menu_option == MainMenuOption.DOWNLOAD:
             download_format: DownloadFormat = pick(
-                download_format_menu_options, 
+                DOWNLOAD_FORMAT_MENU_OPTIONS, 
                 "Which format should the videos be downloaded as", 
-                indicator=select_menu_indicator
+                indicator=SELECT_MENU_INDICATOR,
+                backend=BlessedBackend()
             )[0].value # type: ignore
+
+            logger.debug("download_format=%s", download_format)
 
             if download_format == "back":
                 continue
 
-            download_configuration = download_format_to_custom_download_configuration[download_format]
+            download_location_override_configuration = configuration["quality_of_life_configuration"]["download_location_overrides"]
+            download_format_str = download_format.replace(" ", "_")
+
+            use_download_location_override = download_location_override_configuration[f"use_{download_format_str}_download_location_override"]
+            download_location_override = download_location_override_configuration[f"{download_format_str}_download_location_override"]
+            default_download_location = DEFAULT_DOWNLOAD_LOCATIONS_MAP[download_format]
+
+            logger.debug("use_download_location_override=%s", use_download_location_override)
+
             download_directory: Path
 
-            if not download_configuration["use_download_location_override"]:
-                downloads_directory_path.mkdir(exist_ok=True)
-                download_configuration["default_download_location"].mkdir(exist_ok=True)
+            if use_download_location_override:
+                if (download_location_override == None):
+                    raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "is empty")
+                elif (not download_location_override.exists()):
+                    raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "does not exist")      
+                elif (download_location_override.is_file()):
+                    raise InvalidConfigurationError(f"{download_format_str}_download_location_override", "is a file")
 
-                download_directory = download_configuration["default_download_location"]
+                download_directory = download_location_override
             else:
-                custom_download_directory = download_configuration["download_location_override"]
+                DOWNLOADS_DIRECTORY_PATH.mkdir(exist_ok=True, parents=True)
+                default_download_location.mkdir(exist_ok=True, parents=True)
 
-                if (custom_download_directory == None):
-                    raise InvalidConfigurationError(f"{str(download_format)}_download_location_override", "is empty")
+                download_directory = default_download_location
 
-                download_directory = Path(custom_download_directory).resolve()
+            logger.debug("download_directory=%s", download_directory)
 
-                if (not download_directory.exists()):
-                    raise InvalidConfigurationError(f"{str(download_format)}_download_location_override", "does not exist")      
-                elif (download_directory.is_file()):
-                    raise InvalidConfigurationError(f"{str(download_format)}_download_location_override", "is a file")
+            urls: list[str]
 
-            urls: List[str]
-
-            with to_download_file.open("r") as file:
+            with TO_DOWNLOAD_FILE_PATH.open("r") as file:
                 urls = [ line.removesuffix("\n") for line in file.readlines() if not line.isspace() ]
+
+            logger.debug("urls=%s", urls)
 
             if len(urls) <= 0:
                 pick(
                     [ "return to main menu" ], 
-                    f"No YouTube urls found in ({str(to_download_file)}).",
-                    select_menu_indicator
+                    f"No YouTube urls found in ({str(TO_DOWNLOAD_FILE_PATH)}).",
+                    SELECT_MENU_INDICATOR,
+                    backend=BlessedBackend()
                 )
                 continue
 
-            for index, url in enumerate(urls):
-                mediaType = parse_youtube_link_type(url)
+            print("Downloading videos...")
 
-                spaced_print(f"Now downloading {mediaType.value} ({url})") if index > 0 else print(f"Now downloading {mediaType.value} ({url})")
+            for url in urls:
+                parse_result = parse_youtube_link_type(url)
 
-                if mediaType == MediaType.VIDEO:
-                    result = await downloader.download_video(url, download_format, download_directory)
+                if parse_result.success is False:
+                    spaced_print(f"Skipping ({url}) as it could not be parsed...")
+                    continue
 
-                    if result["success"]:
-                        spaced_print(f"Video ({result['youtube_video_title']}) was downloaded successfully! ({result['download_path']})")
-                    else:
-                        spaced_print(f"An error occurred while downloading Video ({result['youtube_video_title']}) {result['error_message']}")
-                elif mediaType == MediaType.PLAYLIST:
+                spaced_print(f"Now downloading {parse_result.mediaType.value} ({url})")  
+
+                if parse_result.mediaType == MediaType.VIDEO:
+                    results = await downloader.download_video(url, download_format, download_directory)
+
+                    await display_video_download_result(results)
+                elif parse_result.mediaType == MediaType.PLAYLIST:
                     result = await downloader.download_playlist(url, download_format, download_directory)
 
-                    if result["success"]:
-                        spaced_print(f"Playlist ({result['playlist_name']}) was downloaded successfully! ({result['download_directory_path']})")
-                    else:
-                        spaced_print(f"An error occurred while downloading Playlist ({result['playlist_name']})")
-                        spaced_print(f"Failed to download the following:")
-
-                        print_failed_downloads(result["failed_downloads"])
+                    await display_collection_download_result(result)
                 else:
                     result = await downloader.download_channel(url, download_format, download_directory)
 
-                    if result["success"]:
-                        spaced_print(f"Channel ({result['channel_name']}) was downloaded successfully! ({result['download_directory_path']})")
-                    else:
-                        spaced_print(f"An error occurred while downloading Channel ({result['channel_name']})")
-                        spaced_print(f"Failed to download the following:")
-
-                        print_failed_downloads(result["failed_downloads"])
+                    await display_collection_download_result(result)
 
             input("\nDownloading complete! (Press enter to continue) ")
             clear_console()
         elif main_menu_option == MainMenuOption.EXIT:
-            if configuration["quality_of_life_configuration"]["clear_temporary_files_before_exiting"]:
-                total_files_to_remove = count_directory_files(temporary_files_directory_path, temporary_file_extensions)
-
-                if total_files_to_remove > 0:
-                    clear_directory_display = ClearDirectoryDisplay(
-                        f"Clearing ({temporary_files_directory_path})", 
-                        total_files_to_remove, 
-                        configuration
-                    )
-
-                    clear_directory_files(temporary_files_directory_path, temporary_file_extensions, clear_directory_display.on_progress)
-                    clear_directory_display.progress_bar.close()
-            
             break
 
 
@@ -253,18 +257,27 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except BotDetection:
+        logger.error("cadmium was detected as a bot by YouTube")
         spaced_print("Cadmium was detected as a bot, please refrain from downloading more videos for a while to prevent getting limited or blocked.")
-    except (InvalidConfigurationError, ImpossibleDownloadPath) as exception:
+    except InvalidConfigurationError as exception:
+        logger.exception("cadmium ran into a fatal exception")
         spaced_print(f"Fatal Error: {exception}")
     except KeyboardInterrupt:
+        logger.info("Exiting application")
         exit(0)
-    except BaseException as exception:
+    except SystemExit as e:
+        exit(0)
+    except BaseException:
+        logger.exception("cadmium ran into an unexpected exception")
+
         spaced_print(
-            f"Fatal Error: Unexpected error was raised. Please make an issue on the GitHub with the following error.\n\n"
-            f"{exception.__class__.__name__}: {exception}\n"
-            f"Full Traceback:\n{get_traceback()}"
+            f"Fatal Error: Cadmium ran into an unexpected error." 
+            "\n\nDear user,\nApologies for the inconvenience, If you would like to see this problem fixed please consider going to Cadmium's reporting page (https://github.com/Jodenee/Cadmium/issues/new?template=bug_report.md) and creating a report by following the steps shown in the template. " 
+            "Thank you"
         )
     else:
+        logger.info("Exiting application")
         exit(0)
     
     input("\nPress enter to close the program... ")
+    logger.info("Exiting application")

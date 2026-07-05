@@ -1,92 +1,125 @@
+import logging
+
 from os import environ, system as run_command
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, TypeVar
-from platform import system
-from re import sub as re_sub
+from typing import Callable, Optional
+from platform import system, machine
+from re import Pattern, sub as re_sub
+
+from core.exceptions.impossible_download_path import ImpossibleDownloadPath
+from core.utilities.constants import DARWIN_RESERVED_FILENAME_CHARACTERS, DARWIN_RESERVED_FILENAMES, LINUX_RESERVED_FILENAME_CHARACTERS, MATCH_NOTHING, PACKAGED_FFMPEG_BINARIES_DIRECTORY_PATH, \
+    WINDOWS_RESERVED_FILENAME_CHARACTERS, WINDOWS_RESERVED_FILENAMES, APPLICATION_LOGGER_NAME
+from core.utilities.helpers import choose, collapse_whitespace
 
 from ..custom_types.configuration import Configuration
 from ..enums.os import OperatingSystem
+from ..enums.cpu_architecture import CpuArchitecture
 from ..exceptions.invalid_configuration_error import InvalidConfigurationError
 
-# Generics
+logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
-T = TypeVar('T')
-
-# functions
+# Platform information functions
 
 def get_os() -> OperatingSystem:  
+    """Determines the current operating system the application is running on. 
+
+    Determines the current operating system the application is running on. By default `OperatingSystem.UNKNOWN` is returned if the 
+    operating system cannot be determined.
+
+    Returns:
+        `OperatingSystem` enum representing the current operating system.
+    """
+
+    raw_operating_system = system().upper()
     try:
-        return OperatingSystem[system().upper()]
+        operating_system = OperatingSystem[system().upper()]
     except KeyError:
-        return OperatingSystem.UNKNOWN
+        operating_system = OperatingSystem.UNKNOWN
+
+    logger.debug("raw_operating_system=%s", raw_operating_system)
+    logger.debug("operating_system=%s", operating_system.name)
+
+    return operating_system
     
 
-def os_choose(map: Dict[OperatingSystem, T], default: T) -> T:
+def get_cpu_architecture() -> CpuArchitecture:  
+    """Determines the current CPU architecture the application is running on. 
+
+    Determines the current CPU architecture the application is running on. By default `CpuArchitecture.UNSUPPORTED` is returned if the 
+    CPU architecture is not officially supported.
+
+    Returns:
+        `OperatingSystem` enum representing the current operating system.
+    """
+
+    raw_cpu_architecture_map: dict[str, CpuArchitecture] = {
+        "x86_64": CpuArchitecture.x86_64,
+        "AMD64": CpuArchitecture.x86_64,
+        "aarch64": CpuArchitecture.ARM64,
+        "arm64": CpuArchitecture.ARM64,
+        "ARM64": CpuArchitecture.ARM64
+    }
+
+    raw_cpu_architecture = machine()
+
     try:
-        return map[get_os()]
+        cpu_architecture = raw_cpu_architecture_map[raw_cpu_architecture]
     except KeyError:
-        return default
+        cpu_architecture = CpuArchitecture.UNSUPPORTED
+
+    logger.debug("raw_cpu_architecture=%s", raw_cpu_architecture)
+    logger.debug("cpu_architecture=%s", cpu_architecture)
+
+    return cpu_architecture
 
 
-# Constants
-
-MAX_OS_PATH_LENGTH = os_choose({
+# OS constants
+OPERATING_SYSTEM = get_os()
+CPU_ARCHITECTURE = get_cpu_architecture()
+MAX_OS_PATH_LENGTH = choose(OPERATING_SYSTEM, {
     OperatingSystem.WINDOWS: 255,
     OperatingSystem.DARWIN: 1024
 }, 4096)
-MAX_OS_FILENAME_LENGTH = os_choose({}, 255)
+MAX_OS_FILENAME_LENGTH = choose(OPERATING_SYSTEM, {}, 255)
 
+# OS action functions
 
-def safe_os_name(name: str, fallback_name: str, max_length: int = 255) -> str:
-    replace_regex: str = os_choose({
-        OperatingSystem.WINDOWS: r"[\/\\?%*:|\"<>\x7F\x00-\x1F]|^\.+|\.+$",
-        OperatingSystem.LINUX: r"[(\\0)\/.\-*?|&;<>#!]|^\.+|\.+$",
-        OperatingSystem.DARWIN: r"[\/:*?\"<>|]",
-    }, r"")
-    reserved_filenames: Tuple[str, ...] = os_choose({
-        OperatingSystem.WINDOWS: (
-            "CON", 
-            "PRN", 
-            "AUX", 
-            "NUL",
-            "COM1", 
-            "COM2", 
-            "COM3", 
-            "COM4", 
-            "COM5", 
-            "COM6", 
-            "COM7", 
-            "COM8", 
-            "COM9",
-            "LPT1", 
-            "LPT2", 
-            "LPT3", 
-            "LPT4", 
-            "LPT5", 
-            "LPT6", 
-            "LPT7", 
-            "LPT8", 
-            "LPT9"
-        ),
-        OperatingSystem.DARWIN: (
-            ".DS_Store",
-            ".Trashes",
-            ".VolumeIcon",
-            ".Spotlight",
-            ".fseventsd",
-            ".TemporaryItems",
-            ".DocumentRevisions",
-            ".AppleDouble"
-        ),
+def safe_os_name(name: str, fallback_name: str, max_length: int = MAX_OS_FILENAME_LENGTH) -> str:
+    """Sanitizes a `string` to be fit for naming a file or folder.
+
+    Sanitizes a `string` to be fit for naming a file or folder. If after sanitization the string is 
+    empty or filled with only whitespace, the fallback name is returned.
+
+    Args:
+        name: Name to be sanitized.
+        fallback_name: Fallback name if after sanitization the string is empty or filled with only whitespace.
+        max_length: The maximum length of the name.
+
+    Returns:
+        The sanitized name.
+    """
+
+    replace_regex: Pattern[str] = choose(OPERATING_SYSTEM, {
+        OperatingSystem.WINDOWS: WINDOWS_RESERVED_FILENAME_CHARACTERS,
+        OperatingSystem.LINUX: LINUX_RESERVED_FILENAME_CHARACTERS,
+        OperatingSystem.DARWIN: DARWIN_RESERVED_FILENAME_CHARACTERS,
+    }, MATCH_NOTHING)
+    reserved_filenames: tuple[str, ...] = choose(OPERATING_SYSTEM, {
+        OperatingSystem.WINDOWS: WINDOWS_RESERVED_FILENAMES,
+        OperatingSystem.DARWIN: DARWIN_RESERVED_FILENAMES
     }, ())
-    safe_name: str = re_sub(replace_regex, "", name).strip()
+    safe_name: str = collapse_whitespace(
+        re_sub(replace_regex, "", name)
+    )
     upper_case_safe_name: str = safe_name.upper()
 
     for reserved_file_name in reserved_filenames:
         if reserved_file_name == upper_case_safe_name: 
+            logger.debug("upper_case_safe_name==\"%s\" returning fallback_name", reserved_file_name)
             safe_name = fallback_name
 
     if len(safe_name) == 0: 
+        logger.debug("len(safe_name)==0 returning fallback_name")
         safe_name = fallback_name
 
     return safe_name[:max_length]
@@ -99,11 +132,28 @@ def safe_full_filename(
     max_length: int = MAX_OS_FILENAME_LENGTH, 
     extension_override: Optional[str] = None
 ) -> str:
-    split_full_filename: List[str] = full_filename.rsplit(".", 1)
+    """Sanitizes a filename (including extension) to be fit for the current operating system.
+
+    Sanitizes a filename (including extension) to be fit for the current operating system. If after sanitization the filename is 
+    empty or filled with only whitespace, the fallback filename is returned.
+
+    Args:
+        full_filename: Full filename (including extension).
+        fallback_filename: Fallback filename if after sanitization the filename is empty or filled with only whitespace.
+        filename_prefix: Prefix for the filename.
+        max_length: Maximum length the filename (including extension) must conform to.
+        extension_override: Override for the filename's extension.
+    Returns:
+        The sanitized filename.
+    """
+
+    split_full_filename: list[str] = full_filename.rsplit(".", 1)
     filename: str = split_full_filename[0]
     file_extension: str = split_full_filename[len(split_full_filename) - 1] if extension_override == None else extension_override
-
     max_filename_length: int = max_length - (len(filename_prefix or "") + len(file_extension) + 1) # calculates how long the file's name can be
+
+    logger.debug("split_full_filename=%s", split_full_filename)
+    logger.debug("max_filename_length=%s", max_filename_length)
     
     if max_filename_length <= 0:
         return ""
@@ -113,54 +163,220 @@ def safe_full_filename(
     return f"{filename_prefix or ''}{safe_filename}.{file_extension}"
 
 
-def count_directory_files(path: Path, with_extensions: List[str]) -> int:
+def safe_join_directory(
+    base: Path, 
+    name: str, 
+    fallback_name: str
+) -> Path:
+    """Safely joins a directory with another ensuring the operating system's path limit is not exceeded.
+
+    Args:
+        base: `Path` to a directory.
+        name: Name of the directory to join with `base`.
+        fallback_name: Fallback directory name if after sanitization the directory name is empty or filled with only whitespace.
+
+    Returns:
+        The joined `Path`.
+
+    Raises:
+        ImpossibleDownloadPath:
+            Raised if the length of the joined path is greater than the operating system's maximum path length.
+    """    
+
+    safe_directory_name = safe_os_name(
+        name,
+        fallback_name
+    )
+    path = base / safe_directory_name
+
+    logger.debug("path=%s", path)
+
+    if len(str(path)) > MAX_OS_PATH_LENGTH or safe_directory_name == "":
+        logger.debug("MAX_OS_PATH_LENGTH=%s", MAX_OS_PATH_LENGTH)
+        logger.debug("len_of_path=%s", len(str(path)))
+        logger.debug("safe_directory_name=%s", safe_directory_name)
+
+        raise ImpossibleDownloadPath(path)
+
+    return path
+
+
+def resolve_safe_file_path(
+    directory: Path,
+    filename: str, 
+    fallback_filename: str, 
+    filename_prefix: Optional[str] = None, 
+    extension_override: Optional[str] = None
+) -> Path:
+    """Safely joins a directory with a filename by ensuring it does not exceed the operating systems path length limit.
+
+    Args:
+        directory: `Path` to a directory.
+        filename: Filename to be joined with `directory`.
+        fallback_filename: Fallback filename if after sanitization the filename is empty or filled with only whitespace.
+        filename_prefix: Prefix to be added to the filename.
+        extension_override: Override for the filename's extension.
+
+    Returns:
+        The resolved full `Path` of the file.
+
+    Raises:
+        ImpossibleDownloadPath:
+            Raised if the length of the resolved path is greater than the operating system's maximum path length.
+    """
+
+    safe_filename = safe_full_filename(
+        filename,
+        fallback_filename,
+        filename_prefix,
+        calculate_max_filename_length(directory),
+        extension_override
+    )
+
+    if safe_filename == "":
+        raise ImpossibleDownloadPath(directory)
+
+    return directory / safe_filename
+
+
+def calculate_max_filename_length(directory: Path | str) -> int:
+    """Calculates the maximum filename length allowed in `directory` to not exceed the operating system's path limit.
+
+    Args:
+        directory: A `Pathlike` that leads to a directory.
+
+    Returns:
+        The maximum filename length allowed in `directory`.
+    """    
+
+    return min(MAX_OS_PATH_LENGTH - (len(str(directory)) + 1), MAX_OS_FILENAME_LENGTH)
+
+
+def count_directory_files(directory: Path, with_extensions: list[str]) -> int:
+    """Counts how many files are inside `directory` with a extensions in `with_extensions`.
+
+    Args:
+        directory: `Pathlike` that leads to a directory.
+        with_extensions: List of file extensions to count.
+
+    Returns:
+        The total number of files inside `directory` with extension in `with_extensions`.
+    """
+
     return len([
-        file for file in path.iterdir() 
+        file for file in directory.iterdir() 
         if file.is_file() and file.suffix in with_extensions
     ])
 
 
-def clear_directory_files(path: Path, with_extensions: List[str], on_progress: Optional[Callable[[int], None]] = None):
+def clear_directory_files(directory: Path, with_extensions: list[str], on_progress: Optional[Callable[[int], None]] = None) -> None:
+    """Clears `directory` of files with extension in `with_extensions`.
+
+    Args:
+        directory: `Path` that leads to a directory.
+        with_extensions: List of file extensions to count.
+        on_progress: Callback function to track the progress of clearing `directory`.
+    """
+
+    logger.info("removing all files from directory %s with extensions %s", directory, with_extensions)
+
     files_to_remove = [
-        file for file in path.iterdir() 
+        file for file in directory.iterdir() 
         if file.is_file() and file.suffix in with_extensions
     ]
 
     for file_number, file in enumerate(files_to_remove, 1):
         file.unlink()
+        logger.debug("removed_file=%s", file)
 
         if on_progress:
             on_progress(file_number)
 
+    logger.info("files successfully removed")
+
 
 def try_find_ffmpeg(configuration: Configuration) -> Optional[Path]:
-    path_variable_separator = os_choose({
+    """Attempts to find an FFmpeg binary according with the user's configurations.
+
+    Args:
+        configuration: Cadmium's current configurations.  
+
+    Returns:
+        An optional `Path` to an FFmpeg binary.
+
+    Raises:
+        InvalidConfigurationError:
+            Raised if any of the following conditions are met
+            
+            * `custom_ffmpeg_executable_path` configuration is set but does not exist,
+            * `custom_ffmpeg_executable_path` configuration is set but does not lead to a file,
+            * `use_path_ffmpeg` is enabled but ffmpeg could not be found in PATH,
+            * `use_packaged_ffmpeg` is enabled and OS is unknown or CPU architecture is unsupported,
+            * `use_packaged_ffmpeg` is enabled and Packaged FFmpeg binary not found.
+    """
+
+    logger.debug("use_ffmpeg=%s", configuration["external_dependency_configuration"]["ffmpeg"]["use_ffmpeg"])
+
+    if not configuration["external_dependency_configuration"]["ffmpeg"]["use_ffmpeg"]:
+        return
+
+    path_variable_separator = choose(OPERATING_SYSTEM, {
         OperatingSystem.LINUX: ":"
     }, ";")
-    ffmpeg_filename = os_choose({
+    ffmpeg_filename = choose(OPERATING_SYSTEM, {
         OperatingSystem.LINUX: "ffmpeg"
     }, "ffmpeg.exe")
     system_path_variables = environ.get("PATH", "").split(path_variable_separator)
 
-    if configuration["external_dependency_configuration"]["FFmpeg"]["try_find_ffmpeg_path_automatically"] and not configuration["external_dependency_configuration"]["FFmpeg"]["ffmpeg_executable_path"]:
-        for path in system_path_variables:
-            ffmpeg_path = Path(path) / ffmpeg_filename
+    logger.debug("custom_ffmpeg_executable_path=%r", configuration["external_dependency_configuration"]["ffmpeg"]["custom_ffmpeg_executable_path"])
+    logger.debug("use_path_ffmpeg=%r", configuration["external_dependency_configuration"]["ffmpeg"]["use_path_ffmpeg"])
+    logger.debug("use_packaged_ffmpeg=%r", configuration["external_dependency_configuration"]["ffmpeg"]["use_packaged_ffmpeg"])
 
-            if ffmpeg_path.exists():
-                return ffmpeg_path
-    else:
-        raw_ffmpeg_path = configuration["external_dependency_configuration"]["FFmpeg"]["ffmpeg_executable_path"]
+    if configuration["external_dependency_configuration"]["ffmpeg"]["custom_ffmpeg_executable_path"]:
+        logger.info("attempting to resolve path to custom ffmpeg executable")
+        raw_ffmpeg_path = configuration["external_dependency_configuration"]["ffmpeg"]["custom_ffmpeg_executable_path"]
 
         if raw_ffmpeg_path:
             ffmpeg_path = Path(raw_ffmpeg_path)
 
             if not ffmpeg_path.exists():
-                raise InvalidConfigurationError("ffmpeg_path", f"{raw_ffmpeg_path} does not exist")
+                raise InvalidConfigurationError("custom_ffmpeg_executable_path", f"{raw_ffmpeg_path} does not exist")
+            elif not ffmpeg_path.is_file():
+                raise InvalidConfigurationError("custom_ffmpeg_executable_path", f"{raw_ffmpeg_path} does not lead to a file")
+            
+            logger.info("found ffmpeg executable found at %s", ffmpeg_path)
             
             return ffmpeg_path
+    elif configuration["external_dependency_configuration"]["ffmpeg"]["use_path_ffmpeg"]:
+        logger.info("attempting to resolve path to ffmpeg executable in PATH")
+
+        for path in system_path_variables:
+            ffmpeg_path = Path(path) / ffmpeg_filename
+
+            if ffmpeg_path.exists():
+                logger.info("found ffmpeg executable found at %s", ffmpeg_path)
+                return ffmpeg_path
+
+        raise InvalidConfigurationError("use_path_ffmpeg", "FFmpeg was not found inside PATH")
+    elif configuration["external_dependency_configuration"]["ffmpeg"]["use_packaged_ffmpeg"]:
+        logger.info("attempting to resolve packaged ffmpeg executable")
+
+        platform_ffmpeg_directory_name = f"{OPERATING_SYSTEM.value.lower()}_{CPU_ARCHITECTURE.value.lower()}"
+        platform_ffmpeg_binary_path = PACKAGED_FFMPEG_BINARIES_DIRECTORY_PATH.joinpath(platform_ffmpeg_directory_name, "bin", ffmpeg_filename)
+
+        if OPERATING_SYSTEM == OperatingSystem.UNKNOWN or CPU_ARCHITECTURE == CpuArchitecture.UNSUPPORTED:
+            raise InvalidConfigurationError("use_packaged_ffmpeg", "Could not determine necessary platform specs to load appropriate FFmpeg binary")
+        elif not platform_ffmpeg_binary_path.exists():
+            raise InvalidConfigurationError("use_packaged_ffmpeg", "Packaged FFmpeg binary does not exist, please do a fresh install of Cadmium to fix this issue")
+        
+        logger.info("found ffmpeg executable found at %s", platform_ffmpeg_binary_path)
+        
+        return platform_ffmpeg_binary_path
 
 
 def clear_console() -> None:
-    run_command(os_choose({
+    "Clears all text from console."     
+
+    run_command(choose(OPERATING_SYSTEM, {
         OperatingSystem.WINDOWS: "cls"
     }, "clear"))

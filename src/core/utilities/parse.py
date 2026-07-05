@@ -1,21 +1,52 @@
+import logging
 
-from re import compile as compile_regex
+from typing import Literal, NamedTuple
+
+from .constants import YOUTUBE_CHANNEL_REGEX, YOUTUBE_PLAYLIST_REGEX, YOUTUBE_VIDEO_REGEX, APPLICATION_LOGGER_NAME
 from ..enums import MediaType
-from ..exceptions import InvalidYoutubeURLError
 
-youtube_video_regex = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/(?:watch\?v=|shorts\/)[\w\-]{11}(?:[&\?]\S*)?$")
-youtube_playlist_regex = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w\-]+$")
-youtube_channel_regex = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/@[\w\-\.]+$")
+logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
-def parse_youtube_link_type(url: str) -> MediaType:
+# Types
+
+class _UrlParseSuccess(NamedTuple):
+    success: Literal[True]
+    mediaType: MediaType
+
+class _UrlParseFailure(NamedTuple):
+    success: Literal[False]
+    mediaType: None
+
+UrlParseResult = _UrlParseSuccess | _UrlParseFailure
+
+# Functions
+
+def parse_youtube_link_type(url: str) -> UrlParseResult:
+    """Parses a `MediaType` from a youtube url.
+
+    Args:
+        url: URL of either a video, playlist or channel.
+
+    Returns:
+        Tuple containing a success flag and `MediaType` that represents the type of media the provided url leads to.
+    """
+    
+    parse_result: UrlParseResult
+
     if (url.isspace()):
-        raise InvalidYoutubeURLError(url)
-
-    if youtube_video_regex.match(url):
-        return MediaType.VIDEO
-    elif youtube_playlist_regex.match(url):
-        return MediaType.PLAYLIST
-    elif youtube_channel_regex.match(url):
-        return MediaType.CHANNEL
+        logging.debug("could not parse empty string into a valid media type")
+        parse_result = _UrlParseFailure(False, None)
+    elif YOUTUBE_VIDEO_REGEX.match(url):
+        parse_result = _UrlParseSuccess(True, MediaType.VIDEO)
+    elif YOUTUBE_PLAYLIST_REGEX.match(url):
+        parse_result = _UrlParseSuccess(True, MediaType.PLAYLIST)
+    elif YOUTUBE_CHANNEL_REGEX.match(url):
+        parse_result = _UrlParseSuccess(True, MediaType.CHANNEL)
     else:
-        raise InvalidYoutubeURLError(url)
+        logging.debug("url=%s could not be parsed into a known MediaType", url)
+        parse_result = _UrlParseFailure(False, None)
+
+    if parse_result.success is True:
+        logger.info("%r successfully parsed as %s", url, parse_result.mediaType.name)
+    
+    return parse_result

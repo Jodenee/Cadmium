@@ -2,6 +2,7 @@ from typing import TypedDict
 
 class DownloadBehaviorConfiguration(TypedDict):
     skip_existing_files: bool
+    automatically_delete_temporary_files_after_download: bool
 
     convert_video_downloads: bool
     convert_video_only_downloads: bool

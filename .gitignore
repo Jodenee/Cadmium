@@ -8,12 +8,13 @@
 # Ignore folders
 downloads
 temporary_files
+logs
 
 # Ignore download text file
 to_download.txt
 
 # Ignore configuration file
-Configuration.json
+configuration.json
 
 # Ignore build artifacts
 build

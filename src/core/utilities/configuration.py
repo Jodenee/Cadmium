@@ -1,77 +1,55 @@
+import logging
+
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Optional
 from json import load as json_load, dumps as json_dumps
 
+from .constants import DEFAULT_CONFIGURATION, APPLICATION_LOGGER_NAME
 from ..custom_types import Configuration
 
-# constants
+logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
-default_configuration: Configuration = {
-    "download_behavior_configuration": {
-        "skip_existing_files": True,
+# Functions
 
-        "convert_video_downloads": False,
-        "convert_video_only_downloads": False,
-        "convert_audio_only_downloads": False,
-        "merge_best_of_both_downloads_into_one_file": False,
-        "convert_custom_downloads": False,
-        
-        "convert_video_downloads_to": "mp4",
-        "convert_video_only_downloads_to": "mp4",
-        "convert_audio_only_downloads_to": "mp3",
-        "best_of_both_merged_file_format": "mp4",
-        "convert_custom_downloads_to": "mp4"
-    },
-    "quality_of_life_configuration": {
-        "download_location_overrides": {
-            "use_video_download_location_override": False,
-            "use_video_only_download_location_override": False,
-            "use_audio_only_download_location_override": False,
-            "use_best_of_both_download_location_override": False,
-            "use_custom_download_location_override": False,
-            
-            "video_download_location_override": "",
-            "video_only_download_location_override": "",
-            "audio_only_download_location_override": "",
-            "best_of_both_download_location_override": "",
-            "custom_download_location_override": ""
-        },
-        "put_playlist_videos_in_folder": True,
-        "put_channel_videos_in_folder": True,
-        "put_custom_streams_in_folder": True,
-        "display_chosen_stream_on_start_of_download": True,
-        "clear_temporary_files_before_exiting": False
-    },
-    "warning_configuration": {
-        "silence_existing_temporary_files_warning": False,
-    },
-    "ui_configuration": {
-        "custom_download_bar_colour": "",
-        "custom_convert_bar_colour": "",
-        "custom_clear_directory_bar_colour": ""
-    },
-    "external_dependency_configuration": {
-        "FFmpeg": {
-            "try_find_ffmpeg_path_automatically": True,
-            "ffmpeg_executable_path": ""
-        }
-    }
-}
+def create_configuration_file(path: Path, configuration: Optional[Configuration] = DEFAULT_CONFIGURATION) -> None:
+    """Create a configuration file.
 
-# functions
+    Args:
+        path: The exact file path where the file will be created,
+            including the filename.
 
-def create_configuration_file(path: Path, configuration: Optional[Configuration] = default_configuration) -> None:
+        configuration: The contents to write into the file.
+    """
+
     file_content: str = json_dumps(configuration, indent=4)
 
     with path.open("a") as file:
         file.write(file_content)
 
 
-def load_configuration(config_file_path: Path) -> Configuration:
+def load_configuration(configuration_file_path: Path) -> Configuration:
+    """Loads and parses the contents of a configuration file.
+
+    Attempts to load the configurations within the provided file path, 
+    if any exception is raised while parsing or if `configuration_file_path` 
+    does not lead to a file `DEFAULT_CONFIGURATION` is returned.
+
+    Args:
+        configuration_file_path: A `Path` leading to the configuration file.
+
+    Returns:
+        The parsed configuration.
+    """
+
+    if not configuration_file_path.is_file():
+        logger.info("configuration file not found at %s using default configuration instead", configuration_file_path)
+        return DEFAULT_CONFIGURATION
+
     try:
-        with config_file_path.open("r") as config_file:
+        with configuration_file_path.open("r") as config_file:
             json_data: Configuration = json_load(config_file)
 
         return json_data
     except BaseException:
-        return default_configuration
+        logger.exception("configuration file at %s could not be parsed returning default configuration", configuration_file_path)
+        return DEFAULT_CONFIGURATION

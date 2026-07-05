@@ -17,4 +17,4 @@ class OperatingSystem(StrEnum):
     JAVA    = "Java"
     IOS     = "iOS"
     ANDROID = "Android"
-    UNKNOWN   = "Unknown"
+    UNKNOWN = "Unknown"
