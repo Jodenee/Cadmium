@@ -14,7 +14,7 @@ jobs:
       matrix:
         include:
           # Windows x86_64 (AMD64)
-          - name: windows-x64
+          - name: windows-x86_64
             os: windows-2025
             ffmpeg: windows_64
             sep: ";"
@@ -28,7 +28,7 @@ jobs:
 
 
           # Linux x86_64 (AMD64)
-          - name: linux-x64
+          - name: linux-x86_64
             os: ubuntu-24.04
             container: debian:13
             ffmpeg: linux_64
@@ -43,7 +43,7 @@ jobs:
             sep: ":"
 
           # macOS x86_64 (Intel)
-          - name: macos-x64
+          - name: macos-x86_64
             os: macos-15-intel
             ffmpeg: macos_64
             sep: ":"
