@@ -1,0 +1,160 @@
+name: Build Cadmium Nightly
+
+on:
+  schedule:
+    - cron: "0 0 * * *" # Every day at midnight UTC
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows x86_64
+          - name: windows-x86_64
+            os: windows-2025
+            ffmpeg: windows_64
+            sep: ";"
+
+          # Windows ARM64
+          - name: windows-arm64
+            os: windows-11-arm
+            ffmpeg: windows_arm64
+            sep: ";"
+
+          # Linux x86_64
+          - name: linux-x86_64
+            os: ubuntu-24.04
+            container: debian:13
+            ffmpeg: linux_64
+            sep: ":"
+
+          # Linux ARM64
+          - name: linux-arm64
+            os: ubuntu-24.04-arm
+            container: debian:13
+            ffmpeg: linux_arm64
+            sep: ":"
+
+          # macOS Intel
+          - name: macos-x86_64
+            os: macos-15-intel
+            ffmpeg: macos_64
+            sep: ":"
+
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container || '' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          apt-get update
+          apt-get install -y \
+            libffi8 \
+            libssl3 \
+            binutils \
+            libncursesw6 \
+            libtinfo6
+
+      - name: Install Python dependencies
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Windows" || "${{ runner.os }}" == "macOS" ]]; then
+            python -m pip install --upgrade pip
+            python -m pip install -r src/requirements.txt
+          else
+            python3 -m venv venv
+            source venv/bin/activate
+
+            python3 -m pip install --upgrade pip
+            python3 -m pip install -r src/requirements.txt
+          fi
+
+      - name: Build application
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            source venv/bin/activate
+          fi
+
+          pyinstaller --onedir --clean --noconfirm \
+            --name "Cadmium" \
+            --add-data "src/core/bin/ffmpeg/${{ matrix.ffmpeg }}${{ matrix.sep }}core/bin/ffmpeg/${{ matrix.ffmpeg }}" \
+            src/main.py
+
+      - name: Initialise files
+        shell: bash
+        run: |
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            ./dist/Cadmium/Cadmium.exe --initialise_only
+          else
+            ./dist/Cadmium/Cadmium --initialise_only
+          fi
+
+      - name: Package build
+        shell: bash
+        run: |
+          cd dist
+
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            7z a "../Cadmium-nightly-${{ matrix.name }}.zip" *
+          else
+            tar -czf "../Cadmium-nightly-${{ matrix.name }}.tar.gz" *
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            Cadmium-nightly-*.zip
+            Cadmium-nightly-*.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Publish Nightly Release
+        uses: andelf/nightly-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: nightly
+          name: "Nightly Build ($$)"
+          prerelease: true
+          only-when-changed: true
+          body: |
+            # Cadmium Nightly Build
+
+            A build of the current development version of Cadmium, mainly for previewing new features and fixes while a proper release is created.
+
+            Created from commit: ${{ github.sha }}
+
+            ## ⚠️ Disclaimer ⚠️
+
+            **These builds are unstable and may break often, please only install to test or preview upcoming features and fixes.**
+
+            To find the latest **stable** release of cadmium please [click here](https://github.com/Jodenee/Cadmium/releases/latest).      
+          files: |
+            artifacts/**
