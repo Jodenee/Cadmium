@@ -19,13 +19,11 @@ jobs:
             ffmpeg: windows_64
             sep: ";"
 
-
           # Windows ARM64
           - name: windows-arm64
             os: windows-11-arm
             ffmpeg: windows_arm64
             sep: ";"
-
 
           # Linux x86_64 (AMD64)
           - name: linux-x86_64
@@ -33,7 +31,6 @@ jobs:
             container: debian:13
             ffmpeg: linux_64
             sep: ":"
-
 
           # Linux ARM64
           - name: linux-arm64
@@ -48,23 +45,19 @@ jobs:
             ffmpeg: macos_64
             sep: ":"
 
-
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container || '' }}
-
 
     steps:
       # Pull the repository
       - name: Checkout repository
         uses: actions/checkout@v7
 
-
       # Install Python
       - name: Setup Python 
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-
 
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
@@ -76,7 +69,6 @@ jobs:
             binutils \
             libncursesw6 \
             libtinfo6
-
 
       # Install Python dependencies
       - name: Install Python dependencies
@@ -93,7 +85,6 @@ jobs:
               python3 -m pip install -r src/requirements.txt
             fi
 
-
       # Build 
       - name: Build application
         shell: bash
@@ -109,7 +100,6 @@ jobs:
             --add-data "src/core/bin/ffmpeg/${{ matrix.ffmpeg }}${{ matrix.sep }}core/bin/ffmpeg/${{ matrix.ffmpeg }}" \
             src/main.py
 
-
       # Initialise files
       - name: Initialise files
         shell: bash
@@ -119,7 +109,6 @@ jobs:
           elif [[ "${{ runner.os }}" == "Linux" || "${{ runner.os }}" == "macOS"  ]]; then
             ./dist/Cadmium/Cadmium --initialise_only
           fi
-
 
       # Package artifacts
       - name: Package build
@@ -133,7 +122,6 @@ jobs:
           elif [[ "${{ runner.os }}" == "Linux" || "${{ runner.os }}" == "macOS" ]]; then
             tar -czf "../Cadmium-${VERSION}-${{ matrix.name }}.tar.gz" *
           fi
-
 
       # Upload to GitHub Release
       - name: Upload Release Assets
