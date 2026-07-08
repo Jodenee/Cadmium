@@ -9,6 +9,7 @@ from ..lib.temporary_file_storage import TemporaryFileStorage
 from ..custom_types.collection_download_result import CollectionDownloadResult
 from ..utilities.constants import APPLICATION_LOGGER_NAME
 from ..utilities.os import safe_join_directory
+from ..utilities.console import spaced_print
 
 from .factories import ProgressBarFactory
 from .protocols import VideoDownloaderProtocol
@@ -85,7 +86,8 @@ class Downloader:
         youtube_video_url: str, 
         download_format: DownloadFormat, 
         download_directory: Path, 
-        filename_prefix: Optional[str] = None
+        filename_prefix: Optional[str] = None,
+        clear_temporary_files: bool = True
     ) -> list[VideoDownloadResult]:
         """Download a youtube video
 
@@ -180,10 +182,13 @@ class Downloader:
         failed_downloads: list[VideoDownloadResultFailure] = []
 
         for video_url in playlist.url_generator():
+            logger.debug("downloading playlist video video_url=%s", video_url)
+
             results = await self.download_video(
                 video_url, 
                 download_format, 
-                true_download_directory
+                true_download_directory,
+                clear_temporary_files=False
             )
             
             failed_downloads.extend(
@@ -237,10 +242,13 @@ class Downloader:
         failed_downloads: list[VideoDownloadResultFailure] = []
 
         for video_url in channel.video_urls:
+            logger.debug("downloading channel video video_url=%s", video_url)
+
             results = await self.download_video(
                 video_url, 
                 download_format, 
-                true_download_directory
+                true_download_directory,
+                clear_temporary_files=False
             )
 
             failed_downloads.extend(

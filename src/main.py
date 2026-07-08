@@ -177,6 +177,7 @@ async def main() -> None:
                 continue
 
             download_location_override_configuration = configuration["quality_of_life_configuration"]["download_location_overrides"]
+            delete_temporary_files = configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
             download_format_str = download_format.replace(" ", "_")
 
             use_download_location_override = download_location_override_configuration[f"use_{download_format_str}_download_location_override"]
@@ -242,6 +243,11 @@ async def main() -> None:
                     result = await downloader.download_channel(url, download_format, download_directory)
 
                     await display_collection_download_result(result)
+
+            if delete_temporary_files:
+                spaced_print("Removing temporary files...")
+                downloader.temporary_file_storage.remove_temporary_files()
+                spaced_print("Temporary files successfully removed.")
 
             input("\nDownloading complete! (Press enter to continue) ")
             clear_console()

@@ -176,12 +176,6 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
         spaced_print("Conversion was successful!")
 
         logger.info("video conversion to %s successful", custom_file_extension)
-
-        if delete_temporary_files:
-            spaced_print("Removing temporary files...")
-            self._temporary_file_storage.remove_temporary_files()
-            spaced_print("Temporary files successfully removed.")
-
         logger.info("video download for %s was successful", youtube_video.video_id)
 
         return {
