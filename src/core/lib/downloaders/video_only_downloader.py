@@ -61,9 +61,9 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
 
             return {
                 "success": False,
+                "by_user_action": False,
                 "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
             }
 
         logger.info("suitable stream successfully found")
@@ -112,9 +112,9 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
 
             return {
                 "success": False,
+                "by_user_action": False,
                 "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str(exception)
+                "message": str(exception)
             }
     
         if converted_file_path.exists() and should_skip_existing_files:
@@ -126,9 +126,9 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
 
             return {
                 "success": False,
+                "by_user_action": False,
                 "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
+                "message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
             }
 
         logger.info("beginning stream download")
@@ -187,6 +187,5 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
         return {
             "success": True,
             "youtube_video": youtube_video,
-            "download_path": converted_file_path,
-            "error_message": None
+            "download_path": converted_file_path
         }

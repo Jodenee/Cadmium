@@ -4,7 +4,8 @@ from .download_configuration import DownloadConfiguration
 from .quality_of_life_configuration import QualityOfLifeConfiguration
 from .warning_configuration import WarningConfiguration
 from .configuration import Configuration
-from .video_download_result import VideoDownloadResult
+from .video_download_result import VideoDownloadResult, VideoDownloadResultSuccess, VideoDownloadResultFailure
+from .collection_download_result import CollectionDownloadResult
 from .ui_configuration import UIConfiguration
 from .external_dependency_configuration import ExternalDependencyConfiguration
 from .ffmpeg_configuration import FFmpegConfiguration

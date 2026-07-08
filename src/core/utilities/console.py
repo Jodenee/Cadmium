@@ -4,10 +4,9 @@ from typing import Callable, List, Optional, Tuple, cast
 from pick import Option, pick
 from pytubefix.async_youtube import Stream, StreamQuery
 
-from core.custom_types.collection_download_result import CollectionDownloadResult
-from core.custom_types.video_download_result import VideoDownloadResult
-from core.utilities.constants import SELECT_MENU_INDICATOR, APPLICATION_LOGGER_NAME
-from core.utilities.pytubefix_extensions import stream_repr
+from ..custom_types import CollectionDownloadResult, VideoDownloadResult, VideoDownloadResultFailure
+from .constants import SELECT_MENU_INDICATOR, APPLICATION_LOGGER_NAME, SELECT_MENU_QUIT_KEYS
+from .pytubefix_extensions import stream_repr
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
@@ -30,7 +29,7 @@ def spaced_print(*values, sep: Optional[str] = "", flush: bool = False, end: Opt
     print(*("\n", *values), sep=sep, flush=flush, end=end)
 
 
-async def print_failed_downloads(failed_downloads: List[VideoDownloadResult]) -> None:
+async def print_failed_downloads(failed_downloads: List[VideoDownloadResultFailure]) -> None:
     """Prints failed download information in a user friendly format.
 
     Args:
@@ -45,7 +44,7 @@ async def print_failed_downloads(failed_downloads: List[VideoDownloadResult]) ->
         video_url = failed_download['youtube_video'].watch_url
 
         information_text.append(
-            f"{video_title} ({video_url})\nReason: \"{failed_download['error_message']}\"" 
+            f"{video_title} ({video_url})\nReason: \"{failed_download['message']}\"" 
         )
 
     spaced_print(str.join("\n\n", information_text))
@@ -60,10 +59,13 @@ async def display_video_download_result(results: List[VideoDownloadResult]) -> N
     """
 
     for result in results:
-        if result["success"]:
+        if result["success"] is True:
             spaced_print(f"Video ({await result['youtube_video'].title()}) was downloaded successfully! ({result['download_path']})")
         else:
-            spaced_print(f"An error occurred while downloading Video ({await result['youtube_video'].title()}) {result['error_message']}")
+            if not result['by_user_action']:
+                spaced_print(f"An error occurred while downloading video ({await result['youtube_video'].title()}) {result['message']}")
+            else:
+                spaced_print(f"Video download for ({await result['youtube_video'].title()}) {result['message']}")
 
 
 async def display_collection_download_result(result: CollectionDownloadResult) -> None:
@@ -74,7 +76,7 @@ async def display_collection_download_result(result: CollectionDownloadResult) -
             `CollectionDownloadResult` to show the user.
     """
 
-    if result["success"]:
+    if result["success"] is True:
         spaced_print(f"{result['collection_type']} ({result['collection_name']}) was downloaded successfully! ({result['download_directory_path']})")
     else:
         spaced_print(f"An error occurred while downloading {result['collection_type']} ({result['collection_name']})")
@@ -83,7 +85,10 @@ async def display_collection_download_result(result: CollectionDownloadResult) -
         await print_failed_downloads(result["failed_downloads"])
 
 
-def pick_from_streams(streams: StreamQuery, label_generator: Optional[Callable[[Stream], str]] = None) -> List[Stream]:
+def pick_from_streams(
+    streams: StreamQuery, 
+    label_generator: Optional[Callable[[Stream], str]] = None
+) -> List[Stream]:
     """Prompts the user to select one or more of the provided `streams`.
 
     Args:
@@ -106,10 +111,11 @@ def pick_from_streams(streams: StreamQuery, label_generator: Optional[Callable[[
     ]
     stream_pick_menu = cast(List[Tuple[Option, int]], pick(
         options, 
-        "Pick the streams you wish to download. [Spacebar] to select/deselect and [Enter] to download.", 
+        "Pick the streams you wish to download. [Spacebar] to select/deselect [Enter] to download [q] to quit", 
         indicator=SELECT_MENU_INDICATOR, 
         multiselect=True,
-        min_selection_count=1
+        min_selection_count=1,
+        quit_keys=SELECT_MENU_QUIT_KEYS
     ))
     picked_streams = cast(List[Stream], [ picked_option[0].value for picked_option in stream_pick_menu ])
 

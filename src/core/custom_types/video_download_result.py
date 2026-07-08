@@ -6,12 +6,11 @@ class VideoDownloadResultSuccess(TypedDict):
     success: Literal[True]
     youtube_video: AsyncYouTube
     download_path: Path
-    error_message: None
 
 class VideoDownloadResultFailure(TypedDict):
     success: Literal[False]
+    by_user_action: bool
     youtube_video: AsyncYouTube
-    download_path: None
-    error_message: str
+    message: str
 
-VideoDownloadResult = VideoDownloadResultSuccess | VideoDownloadResultFailure
+type VideoDownloadResult = VideoDownloadResultSuccess | VideoDownloadResultFailure
