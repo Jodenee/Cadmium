@@ -9,3 +9,4 @@ from .collection_download_result import CollectionDownloadResult
 from .ui_configuration import UIConfiguration
 from .external_dependency_configuration import ExternalDependencyConfiguration
 from .ffmpeg_configuration import FFmpegConfiguration
+from .return_result import ReturnResult, ReturnResultSuccess, ReturnResultFailure

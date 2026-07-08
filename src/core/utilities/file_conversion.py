@@ -4,9 +4,11 @@ from pathlib import Path
 from typing import Callable, Optional
 from ffmpeg.asyncio import FFmpeg
 from ffmpeg.progress import Progress
+from ffmpeg.errors import FFmpegError
 
-from ..lib.dataclasses import FFmpegFileArgs, FFmpegOptionArgs
 from .constants import APPLICATION_LOGGER_NAME
+from ..custom_types import ReturnResult, ReturnResultFailure, ReturnResultSuccess
+from ..lib.dataclasses import FFmpegFileArgs, FFmpegOptionArgs
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
 
@@ -16,7 +18,7 @@ async def convert_file(
     output_files: tuple[FFmpegFileArgs, ...],
     options: tuple[FFmpegOptionArgs, ...],
     progress_callback: Optional[Callable[[Progress], None]] = None
-) -> None:
+) -> ReturnResult[None]:
     """Converts one or more files into one or more output files.
 
     Args:
@@ -51,8 +53,18 @@ async def convert_file(
 
     try:
         await ffmpeg.execute()
-    except:
+    except FFmpegError as exception:
+        logger.exception("encountered exception while trying to use FFmpeg")
+
         if ffmpeg._executed:
             ffmpeg.terminate()
             
-        raise
+        return ReturnResultFailure(
+            False,
+            exception.message
+        )
+
+    return ReturnResultSuccess(
+        True,
+        None
+    )

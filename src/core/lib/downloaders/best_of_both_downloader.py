@@ -243,7 +243,7 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             int(video_stream.durationMs)
         )
 
-        await convert_file(
+        conversion_result = await convert_file(
             cast(Path, self._ffmpeg_executable_path), 
             ( 
                 FFmpegFileArgs(temporary_video_download_result["download_path"]),
@@ -258,7 +258,7 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             conversion_bar.on_progress
         )
 
-        conversion_bar.close()
+        conversion_bar.close(ensure_full=conversion_result.success)
         spaced_print("Conversion was successful.")
 
         logger.info("video conversion to %s successful", custom_file_extension)
