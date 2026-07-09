@@ -89,7 +89,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
             results.append(result)
 
-        if all(map(lambda r: not r["success"], results)) and put_in_custom_folder:
+        if all(map(lambda r: not r["success"], results)) and put_in_custom_folder and not any(download_directory.iterdir()):
             download_directory.rmdir()
 
         logger.info("video download for %s was successful", youtube_video.video_id)
