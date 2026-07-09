@@ -244,7 +244,7 @@ async def main() -> None:
 
                     await display_collection_download_result(result)
 
-            if delete_temporary_files:
+            if delete_temporary_files and downloader.temporary_file_storage.has_files:
                 spaced_print("Removing temporary files...")
                 downloader.temporary_file_storage.remove_temporary_files()
                 spaced_print("Temporary files successfully removed.")
