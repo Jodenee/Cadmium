@@ -41,7 +41,6 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         download_directory: Path, 
         filename_prefix: Optional[str] = None
     ) -> list[VideoDownloadResult]:
-        delete_temporary_files = self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
         put_in_custom_folder = self._configuration["quality_of_life_configuration"]["put_custom_streams_in_folder"]
         results: list[VideoDownloadResult] = []
 
