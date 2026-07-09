@@ -66,7 +66,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             return [{
                 "success": False,
                 "by_user_action": True,
-                "youtube_video": youtube_video,
+                "youtube_video_title": await youtube_video.title(),
                 "message": "was canceled by the user."
             }]
 
@@ -144,7 +144,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             return {
                 "success": False,
                 "by_user_action": False,
-                "youtube_video": youtube_video,
+                "youtube_video_title": await youtube_video.title(),
                 "message": str(exception)
             }
 
@@ -158,7 +158,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             return {
                 "success": False,
                 "by_user_action": False,
-                "youtube_video": youtube_video,
+                "youtube_video_title": await youtube_video.title(),
                 "message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
             }
 
@@ -209,6 +209,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
         return {
             "success": True,
-            "youtube_video": youtube_video,
+            "youtube_video_title": await youtube_video.title(),
+            "stream_itags": (stream.itag, ),
             "download_path": converted_file_path
         }

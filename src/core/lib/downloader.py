@@ -116,7 +116,7 @@ class Downloader:
             return [{
                 "success": False,
                 "by_user_action": False,
-                "youtube_video": youtube_video,
+                "youtube_video_title": await youtube_video.title(),
                 "message": f"Video ({await youtube_video.title()}) doesn't have any available streams."
             }]
         
@@ -134,13 +134,13 @@ class Downloader:
             if download_result["success"] is True:
                 logger.debug(
                     "successful_download video_id=%s download_path=%s", 
-                    download_result["youtube_video"].video_id, 
+                    youtube_video.video_id, 
                     download_result["download_path"]
                 )
             else:
                 logger.debug(
                     "failed_download video_id=%s message=%s", 
-                    download_result["youtube_video"].video_id, 
+                    youtube_video.video_id, 
                     download_result["message"]
                 )
 

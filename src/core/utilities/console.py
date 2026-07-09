@@ -37,15 +37,10 @@ async def print_failed_downloads(failed_downloads: List[VideoDownloadResultFailu
             List of `VideoDownloadResult` to show the user.
     """
 
-    information_text = []
-
-    for failed_download in failed_downloads:
-        video_title = await failed_download['youtube_video'].title()
-        video_url = failed_download['youtube_video'].watch_url
-
-        information_text.append(
-            f"{video_title} ({video_url})\nReason: \"{failed_download['message']}\"" 
-        )
+    information_text = [
+        f"{failed_download['youtube_video_title']}\nReason: \"{failed_download['message']}\"" 
+            for failed_download in failed_downloads
+    ]
 
     spaced_print(str.join("\n\n", information_text))
 
@@ -60,12 +55,14 @@ async def display_video_download_result(results: List[VideoDownloadResult]) -> N
 
     for result in results:
         if result["success"] is True:
-            spaced_print(f"Video ({await result['youtube_video'].title()}) was downloaded successfully! ({result['download_path']})")
+            itags = str.join(", ", map(lambda i: str(i), result['stream_itags']))
+
+            spaced_print(f"Video ({result['youtube_video_title']}) ({itags}) was downloaded successfully! ({result['download_path']})")
         else:
             if not result['by_user_action']:
-                spaced_print(f"An error occurred while downloading video ({await result['youtube_video'].title()}) {result['message']}")
+                spaced_print(f"An error occurred while downloading video ({result['youtube_video_title']}) {result['message']}")
             else:
-                spaced_print(f"Video download for ({await result['youtube_video'].title()}) {result['message']}")
+                spaced_print(f"Video download for ({result['youtube_video_title']}) {result['message']}")
 
 
 async def display_collection_download_result(result: CollectionDownloadResult) -> None:
