@@ -104,8 +104,6 @@ jobs:
       - name: Initialise files
         shell: bash
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
-
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             ./dist/Cadmium/Cadmium.exe --initialise_only
           elif [[ "${{ runner.os }}" == "Linux" || "${{ runner.os }}" == "macOS"  ]]; then
