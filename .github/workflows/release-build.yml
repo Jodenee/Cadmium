@@ -112,7 +112,7 @@ jobs:
             ./dist/Cadmium/Cadmium --initialise_only
           fi
 
-          cp LICENCE.txt "dist/Cadmium-${VERSION}-${{ matrix.name }}/LICENCE.txt"
+          cp LICENCE.txt "dist/Cadmium/LICENCE.txt"
 
       # Package artifacts
       - name: Package build
