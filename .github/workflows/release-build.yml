@@ -89,11 +89,11 @@ jobs:
       - name: Build application
         shell: bash
         run: |
+          VERSION="${{ github.event.release.tag_name }}"  
+        
           if [[ "${{ runner.os }}" == "Linux" ]]; then
             source venv/bin/activate
           fi
-          
-          VERSION="${{ github.event.release.tag_name }}"
 
           pyinstaller --onedir --clean --noconfirm \
             --name "Cadmium" \
@@ -104,11 +104,15 @@ jobs:
       - name: Initialise files
         shell: bash
         run: |
+          VERSION="${{ github.event.release.tag_name }}"
+
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             ./dist/Cadmium/Cadmium.exe --initialise_only
           elif [[ "${{ runner.os }}" == "Linux" || "${{ runner.os }}" == "macOS"  ]]; then
             ./dist/Cadmium/Cadmium --initialise_only
           fi
+
+          cp LICENCE.txt "dist/Cadmium-${VERSION}-${{ matrix.name }}/LICENCE.txt"
 
       # Package artifacts
       - name: Package build
