@@ -105,6 +105,8 @@ jobs:
             ./dist/Cadmium/Cadmium --initialise_only
           fi
 
+          cp LICENCE.txt "dist/Cadmium/LICENCE.txt"
+
       - name: Package build
         shell: bash
         run: |
@@ -143,7 +145,6 @@ jobs:
           tag_name: nightly
           name: "Nightly Build ($$)"
           prerelease: true
-          only-when-changed: true
           body: |
             # Cadmium Nightly Build
 
