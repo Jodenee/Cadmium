@@ -22,7 +22,7 @@ Cadmium is a python command line application made to conveniently download youtu
 | Linux            | ✅     | ✅   |
 | macOS            | ✅     | 🚧   |
 
-## Download instructions for the prebuilt executable (Recommended for most users)
+## Download instructions (Recommended)
 This section will help instruct you through the download process, please note that this is for the prebuilt executable file. If you wish to build or run the source code please follow this [tutorial](./tutorials/building_cadmium.md) instead. 
 
 1. Download the latest version of Cadmium for your system from [*here*](https://github.com/Jodenee/Cadmium/releases).
@@ -30,7 +30,7 @@ This section will help instruct you through the download process, please note th
 3. Open the "Cadmium" folder and run Cadmium.exe file.
 4. You're all set! Happy downloading!
 
-## Download instructions for running the raw source code or building (For advanced users)
+## Running the raw source code and building guide (Advanced)
 To learn how to build Cadmium from it's source code please look at this [tutorial](tutorials/building_cadmium.md), it covers building Cadmium from source and running the source code manually with the Python interpreter.
 
 ## Tutorials
