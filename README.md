@@ -31,7 +31,7 @@ This section will help instruct you through the download process, please note th
 4. You're all set! Happy downloading!
 
 ## Running the raw source code and building guide (Advanced)
-To learn how to build Cadmium from it's source code please look at this [tutorial](tutorials/building_cadmium.md), it covers building Cadmium from source and running the source code manually with the Python interpreter.
+To learn how to build Cadmium from it's source code please look at this [tutorial](tutorials/building_cadmium.md), it covers running the source code manually with the Python interpreter and building Cadmium from it's source code into an executable file.
 
 ## Tutorials
 
