@@ -161,4 +161,5 @@ jobs:
 
             To find the latest **stable** release of cadmium please [click here](https://github.com/Jodenee/Cadmium/releases/latest).      
           files: |
-            artifacts/**
+            artifacts/*.zip
+            artifacts/*.tar.gz
