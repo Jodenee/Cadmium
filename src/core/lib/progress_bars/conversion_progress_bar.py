@@ -29,8 +29,10 @@ class ConversionProgressBar:
         self._progress_bar.refresh()
 
 
-    def close(self):
-        self._progress_bar.n = self._progress_bar.total
+    def close(self, ensure_full: bool = True):
+        if ensure_full:
+            self._progress_bar.n = self._progress_bar.total
+            
         self._progress_bar.refresh()
         self._progress_bar.close()
 

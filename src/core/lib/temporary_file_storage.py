@@ -44,3 +44,8 @@ class TemporaryFileStorage:
         self._temporary_files.clear()
 
         logger.info("temporary files successfully removed")
+
+
+    @property
+    def has_files(self) -> bool:
+        return any(self._temporary_files)

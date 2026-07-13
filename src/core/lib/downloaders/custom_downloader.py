@@ -41,7 +41,6 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
         download_directory: Path, 
         filename_prefix: Optional[str] = None
     ) -> list[VideoDownloadResult]:
-        delete_temporary_files = self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"]
         put_in_custom_folder = self._configuration["quality_of_life_configuration"]["put_custom_streams_in_folder"]
         results: list[VideoDownloadResult] = []
 
@@ -49,17 +48,28 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
         chosen_streams = pick_from_streams(await youtube_video.streams())
 
-        logger.info("suitable stream(s) successfully chosen")
         logger.debug(
             "video_id=%s stream_itags=%s should_convert=%s should_skip_existing_files=%s custom_file_extension=%s delete_temporary_files=%s put_custom_streams_in_folder=%s",
             youtube_video.video_id,
-            map(lambda x: x.itag, chosen_streams),
+            tuple(map(lambda x: x.itag, chosen_streams)),
             self._configuration["download_behavior_configuration"]["convert_custom_downloads"], 
             self._configuration["download_behavior_configuration"]["skip_existing_files"],
             self._configuration["download_behavior_configuration"]["convert_custom_downloads_to"],
             self._configuration["download_behavior_configuration"]["automatically_delete_temporary_files_after_download"],
             put_in_custom_folder
         )
+
+        if len(chosen_streams) == 0:
+            logger.info("no streams chosen")
+            
+            return [{
+                "success": False,
+                "by_user_action": True,
+                "youtube_video_title": await youtube_video.title(),
+                "message": "was canceled by the user."
+            }]
+
+        logger.info("suitable stream(s) successfully chosen")
 
         if put_in_custom_folder:
             download_directory = safe_join_directory(
@@ -70,7 +80,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             download_directory.mkdir(parents=True, exist_ok=True)
 
         for stream in chosen_streams:
-            result = await self._inner_download(
+            result = await self._custom_stream_download(
                 stream,
                 download_directory,
                 filename_prefix
@@ -78,19 +88,15 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
             results.append(result)
 
-        if all(map(lambda r: not r["success"], results)):
+        if all(map(lambda r: not r["success"], results)) and put_in_custom_folder and not any(download_directory.iterdir()):
             download_directory.rmdir()
 
-        if delete_temporary_files:
-            spaced_print("Removing temporary files...")
-            self._temporary_file_storage.remove_temporary_files()
-            spaced_print("Temporary files successfully removed.")
-
         logger.info("video download for %s was successful", youtube_video.video_id)
+        
         return results
 
 
-    async def _inner_download(
+    async def _custom_stream_download(
         self, 
         stream: Stream,
         download_directory: Path,
@@ -136,9 +142,9 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
             return {
                 "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str(exception)
+                "by_user_action": False,
+                "youtube_video_title": await youtube_video.title(),
+                "message": str(exception)
             }
 
         if converted_file_path.exists() and should_skip_existing_files:
@@ -150,9 +156,9 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
             return {
                 "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
+                "by_user_action": False,
+                "youtube_video_title": await youtube_video.title(),
+                "message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
             }
 
         logger.info("beginning stream download")
@@ -180,7 +186,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             int(stream.durationMs)
         )
 
-        await convert_file(
+        conversion_result = await convert_file(
             cast(Path, self._ffmpeg_executable_path), 
             ( 
                 FFmpegFileArgs(temporary_video_download_result["download_path"]), 
@@ -194,7 +200,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
             conversion_bar.on_progress
         )
 
-        conversion_bar.close()
+        conversion_bar.close(ensure_full=conversion_result.success)
         spaced_print("Conversion was successful.")
 
         logger.info("video conversion to %s successful", custom_file_extension)
@@ -202,7 +208,7 @@ class CustomDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
         return {
             "success": True,
-            "youtube_video": youtube_video,
-            "download_path": converted_file_path,
-            "error_message": None
+            "youtube_video_title": await youtube_video.title(),
+            "stream_itags": (stream.itag, ),
+            "download_path": converted_file_path
         }

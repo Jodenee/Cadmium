@@ -11,6 +11,7 @@ from ..enums.main_menu_option import MainMenuOption
 # General constants to be used within the application
 TEMPORARY_FILE_EXTENSIONS: list[str] = [ ".webm", ".m4a", ".mp4", ".mp3" ]
 SELECT_MENU_INDICATOR: str = ">"
+SELECT_MENU_QUIT_KEYS: tuple[int, ...] = ( ord("q"), ord("Q") )
 DEFAULT_CONFIGURATION: Configuration = {
     "download_behavior_configuration": {
         "skip_existing_files": True,

@@ -1,0 +1,2 @@
+# Mark bin directory as vendored to not disrupt actual language statistics
+src/core/bin/** linguist-vendored

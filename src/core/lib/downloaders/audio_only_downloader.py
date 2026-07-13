@@ -62,9 +62,9 @@ class AudioOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
 
             return {
                 "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+                "by_user_action": False,
+                "youtube_video_title": await youtube_video.title(),
+                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
             }
 
         logger.info("suitable stream successfully found")
@@ -113,17 +113,17 @@ class AudioOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
 
             return {
                 "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str(exception)
+                "by_user_action": False,
+                "youtube_video_title": await youtube_video.title(),
+                "message": str(exception)
             }
 
         if converted_file_path.exists() and should_skip_existing_files:
             return {
                 "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
+                "by_user_action": False,
+                "youtube_video_title": await youtube_video.title(),
+                "message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=converted_file_path)
             }
 
         logger.info("beginning stream download")
@@ -154,7 +154,7 @@ class AudioOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
             int(stream.durationMs)
         )
 
-        await convert_file(
+        conversion_result = await convert_file(
             cast(Path, self._ffmpeg_executable_path), 
             ( 
                 FFmpegFileArgs(temporary_video_download_result["download_path"]), 
@@ -168,21 +168,15 @@ class AudioOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
             conversion_bar.on_progress
         )
 
-        conversion_bar.close()
+        conversion_bar.close(ensure_full=conversion_result.success)
         spaced_print("Conversion was successful.")
 
         logger.info("video conversion to %s successful", custom_file_extension)
-
-        if delete_temporary_files:
-            spaced_print("Removing temporary files...")
-            self._temporary_file_storage.remove_temporary_files()
-            spaced_print("Temporary files successfully removed.")
-
         logger.info("video download for %s was successful", youtube_video.video_id)
 
         return {
             "success": True,
-            "youtube_video": youtube_video,
-            "download_path": converted_file_path,
-            "error_message": None
+            "youtube_video_title": await youtube_video.title(),
+            "stream_itags": (stream.itag, ),
+            "download_path": converted_file_path
         }

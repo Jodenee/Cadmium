@@ -3,17 +3,18 @@ import logging
 from pytubefix.async_youtube import AsyncYouTube
 from pytubefix import Playlist, StreamQuery, Channel
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 from ..lib.temporary_file_storage import TemporaryFileStorage
 from ..custom_types.collection_download_result import CollectionDownloadResult
 from ..utilities.constants import APPLICATION_LOGGER_NAME
 from ..utilities.os import safe_join_directory
+from ..utilities.console import spaced_print
 
 from .factories import ProgressBarFactory
 from .protocols import VideoDownloaderProtocol
 from .downloaders import VideoDownloader, VideoOnlyDownloader, AudioOnlyDownloader, BestOfBothDownloader, CustomDownloader
-from ..custom_types import Configuration, VideoDownloadResult
+from ..custom_types import Configuration, VideoDownloadResult, VideoDownloadResultFailure
 from ..enums import DownloadFormat
 
 logger = logging.getLogger(APPLICATION_LOGGER_NAME)
@@ -85,7 +86,8 @@ class Downloader:
         youtube_video_url: str, 
         download_format: DownloadFormat, 
         download_directory: Path, 
-        filename_prefix: Optional[str] = None
+        filename_prefix: Optional[str] = None,
+        clear_temporary_files: bool = True
     ) -> list[VideoDownloadResult]:
         """Download a youtube video
 
@@ -113,9 +115,9 @@ class Downloader:
 
             return [{
                 "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": f"Video ({await youtube_video.title()}) doesn't have any available streams."
+                "by_user_action": False,
+                "youtube_video_title": await youtube_video.title(),
+                "message": f"Video ({await youtube_video.title()}) doesn't have any available streams."
             }]
         
         result: VideoDownloadResult | list[VideoDownloadResult] = ( 
@@ -132,14 +134,14 @@ class Downloader:
             if download_result["success"] is True:
                 logger.debug(
                     "successful_download video_id=%s download_path=%s", 
-                    download_result["youtube_video"].video_id, 
+                    youtube_video.video_id, 
                     download_result["download_path"]
                 )
             else:
                 logger.debug(
-                    "failed_download video_id=%s error_message=%s", 
-                    download_result["youtube_video"].video_id, 
-                    download_result["error_message"]
+                    "failed_download video_id=%s message=%s", 
+                    youtube_video.video_id, 
+                    download_result["message"]
                 )
 
         logger.info("video download for %s has concluded", youtube_video.video_id)
@@ -177,18 +179,24 @@ class Downloader:
 
         logger.debug("true_download_directory=%s", true_download_directory)
 
-        failed_downloads: list[VideoDownloadResult] = []
+        failed_downloads: list[VideoDownloadResultFailure] = []
 
         for video_url in playlist.url_generator():
+            logger.debug("downloading playlist video video_url=%s", video_url)
+
             results = await self.download_video(
                 video_url, 
                 download_format, 
-                true_download_directory
+                true_download_directory,
+                clear_temporary_files=False
             )
-
-            for result in results:
-                if not result["success"]:
-                    failed_downloads.append(result)
+            
+            failed_downloads.extend(
+                cast(
+                    tuple[VideoDownloadResultFailure, ...], 
+                    tuple(filter(lambda r: r["success"] is False, results))
+                )
+            )
 
         logger.info("finished downloading playlist %s", playlist_url)
 
@@ -231,18 +239,24 @@ class Downloader:
 
         logger.debug("true_download_directory=%s", true_download_directory)
 
-        failed_downloads: list[VideoDownloadResult] = []
+        failed_downloads: list[VideoDownloadResultFailure] = []
 
         for video_url in channel.video_urls:
+            logger.debug("downloading channel video video_url=%s", video_url)
+
             results = await self.download_video(
                 video_url, 
                 download_format, 
-                true_download_directory
+                true_download_directory,
+                clear_temporary_files=False
             )
 
-            for result in results:
-                if not result["success"]:
-                    failed_downloads.append(result)
+            failed_downloads.extend(
+                cast(
+                    tuple[VideoDownloadResultFailure, ...], 
+                    tuple(filter(lambda r: r["success"] is False, results))
+                )
+            )
 
         logger.info("finished downloading channel %s", channel_url)
 

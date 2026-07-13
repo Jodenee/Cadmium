@@ -65,9 +65,9 @@ class VideoDownloaderProtocol[ReturnType](Protocol):
 
             return {
                 "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str(exception)
+                "by_user_action": False,
+                "youtube_video_title": await youtube_video.title(),
+                "message": str(exception)
             }
         
         if video_full_file_path.exists() and skip_existing_files:
@@ -75,9 +75,9 @@ class VideoDownloaderProtocol[ReturnType](Protocol):
 
             return {
                 "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=video_full_file_path)
+                "by_user_action": False,
+                "youtube_video_title": await youtube_video.title(),
+                "message": str.format(ALREADY_EXISTS_AT_PATH_ERROR_MESSAGE, path=video_full_file_path)
             }
 
         if self._configuration["quality_of_life_configuration"]["display_chosen_stream_on_start_of_download"]:
@@ -102,14 +102,14 @@ class VideoDownloaderProtocol[ReturnType](Protocol):
 
             return {
                 "success": False,
-                "youtube_video": youtube_video,
-                "download_path": None,
-                "error_message": str.format(VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE, video_title=youtube_video_title)
+                "by_user_action": True,
+                "youtube_video_title": await youtube_video.title(),
+                "message": str.format(VIDEO_DOWNLOAD_CANCELLED_ERROR_MESSAGE, video_title=youtube_video_title)
             } 
         
         return {
             "success": True,
-            "youtube_video": youtube_video,
-            "download_path": Path(download_path),
-            "error_message": None
+            "youtube_video_title": await youtube_video.title(),
+            "stream_itags": (stream.itag, ),
+            "download_path": Path(download_path)
         } 

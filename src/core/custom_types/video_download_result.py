@@ -4,14 +4,14 @@ from pytubefix import AsyncYouTube
 
 class VideoDownloadResultSuccess(TypedDict):
     success: Literal[True]
-    youtube_video: AsyncYouTube
+    youtube_video_title: str
+    stream_itags: tuple[int, ...]
     download_path: Path
-    error_message: None
 
 class VideoDownloadResultFailure(TypedDict):
     success: Literal[False]
-    youtube_video: AsyncYouTube
-    download_path: None
-    error_message: str
+    by_user_action: bool
+    youtube_video_title: str
+    message: str
 
-VideoDownloadResult = VideoDownloadResultSuccess | VideoDownloadResultFailure
+type VideoDownloadResult = VideoDownloadResultSuccess | VideoDownloadResultFailure
