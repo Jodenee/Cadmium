@@ -79,6 +79,13 @@ A short guide for editing Cadmium's configurations.
 ## Configuration Guide
 A comprehensive guide detailing each configuration in detail.
 
+## I don't understand
+If this tutorial failed to help you understand you have the following options:
+
+* If you are not sure how a particular configuration works feel free to [ask here!](https://github.com/Jodenee/Cadmium/discussions/new?category=q-a)
+* Give this file to a LLM and ask it to make the changes for you or explain in greater detail. 
+    * > Just please be aware of your **environmental impact** and risk of hallucination when choosing this option as it may corrupt the file contents.
+
 ### Navigation
 * [Download Behavior Configuration](#download-behavior-configuration)
 * [Quality Of Life Configuration](#quality-of-life-configuration)
@@ -153,5 +160,3 @@ A comprehensive guide detailing each configuration in detail.
 | Setting   | Default | Description                                                                                                                                         |
 |-----------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
 | `enabled` | `true`  | If enabled, Cadmium will log debugging information locally on your computer in case a bug occurs you will need to submit these logs with the issue. |
-
-If you are still not sure how a particular configuration works feel free to [ask here!](https://github.com/Jodenee/Cadmium/discussions/new?category=q-a)

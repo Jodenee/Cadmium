@@ -11,6 +11,8 @@ To confirm your choice or selection press [Enter] on your keyboard.
 
 To select multiple options press the `right arrow key` or `d` on your keyboard.
 
+To quit from a menu press `q` on your keyboard.
+
 ### `configuration.json`
 Cadmium stores it's configurations inside `configuration.json`. To learn how to edit Cadmium's configurations please use this [tutorial](./configuration.md). 
 
@@ -55,7 +57,7 @@ Before running Cadmium first open the `to_download.txt` file and fill it in with
 ### 3. Open Cadmium
 > Please note that if this is your first time running Cadmium, you may get a pop up from your antivirus software or windows, while this is expected behavior it may cause some unrest, so if at any point you are not comfortable with the prebuilt executable a [tutorial](../tutorials/building_cadmium.md) exists to show you how to build Cadmium yourself.
 
-Once cadmium is opened, choose the "download" option using the up and down arrow keys or wasd and press [Enter].
+Once cadmium is opened, choose the "download" option using the `up arrow` and `down arrow` keys or `wasd` and press the `Enter` key.
 
 ![Image showing how to choose download main menu option.](../assets/tutorial/using_cadmium_assets/CadmiumMainMenu.png)
 
@@ -75,8 +77,10 @@ After you will be taken back to the main menu, to exit select the "exit" option.
 ![Image showing how to exit Cadmium.](../assets/tutorial/using_cadmium_assets/ExitCadmium.png)
 
 ### 7. Finding The Downloaded Media
-After exiting Cadmium your downloaded files will be located inside the `downloads` folder in the subfolder with the same name as the format selected in step 4. Enjoy!
+After exiting Cadmium your downloaded files will be located inside the `downloads` folder in the subfolder with the same name as the format selected in step 4. 
 
-If you enabled download location overrides in `configuration.json` you media can be found in the path you have specified.
+Enjoy!
+
+( If you enabled download location overrides in `configuration.json` you media can be found in the path you have specified. )
 
 ![Image showing where the downloaded video went.](../assets/tutorial/using_cadmium_assets/DownloadLocation.png)

@@ -14,7 +14,7 @@ Cadmium is a python command line application made to conveniently download youtu
 * ⚙️ **Configurable**
     * Personalise Cadmium with it's many configuration options to make it work the way you want.
 
-## Supported Platforms
+## Supported Platforms Matrix
 
 | Operating System | x86_64 | arm64 |
 |------------------|--------|-------|
