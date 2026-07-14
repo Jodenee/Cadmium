@@ -25,7 +25,7 @@ Cadmium is a python command line application made to conveniently download youtu
 ## Download instructions (Recommended)
 This section will help instruct you through the download process, please note that this is for the prebuilt executable file. If you wish to build or run the source code please follow this [tutorial](./tutorials/building_cadmium.md) instead. 
 
-1. Download the latest version of Cadmium for your system from [*here*](https://github.com/Jodenee/Cadmium/releases).
+1. Download the latest version of Cadmium for your system from [*here*](https://github.com/Jodenee/Cadmium/releases/latest).
 2. Once downloaded unzip and extract the folder.
 3. Open the "Cadmium" folder and run Cadmium.exe file.
 4. You're all set! Happy downloading!
