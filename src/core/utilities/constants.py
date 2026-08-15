@@ -114,7 +114,9 @@ DOWNLOAD_FORMAT_MENU_OPTIONS: tuple[Option, ...] = (
 )
 
 # Media parsing regexes used to parse media type from url.
-YOUTUBE_VIDEO_REGEX = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/(?:watch\?v=|shorts\/)[\w\-]{11}(?:[&\?]\S*)?$")
+YOUTUBE_VIDEO_REGEX = compile_regex(
+    r"^https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)[\w\-]{11}(?:[&\?]\S*)?$"
+)
 YOUTUBE_PLAYLIST_REGEX = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/playlist\?list=[\w\-]+$")
 YOUTUBE_CHANNEL_REGEX = compile_regex(r"^https?:\/\/(?:www\.)?youtube\.com\/@[\w\-\.]+$")
 
