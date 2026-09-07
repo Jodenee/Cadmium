@@ -13,14 +13,15 @@ def stream_repr(stream: Stream) -> str:
 
     separator = " | "
     fps = stream.fps if hasattr(stream, 'fps') else 'N/A'
-    bitrate = f"{stream.bitrate / 1000}kbps" if stream.bitrate != None else 'N/A'
+    resolution = stream.resolution if hasattr(stream, 'resolution') and stream.resolution is not None else 'N/A'
+    bitrate = f"{stream.bitrate / 1000}kbps" if stream.bitrate is not None else 'N/A'
 
     information_text = str.join(separator, (
         f"subtype: {stream.subtype}",
         f"has video track: {stream.includes_video_track}",
         f"has audio track: {stream.includes_audio_track}",
         f"fps: {fps}",                                    
-        f"resolution: {stream.resolution}",              
+        f"resolution: {resolution}",              
         f"bitrate: {bitrate}",              
         f"file size in MB: {stream.filesize_mb}",
         f"video codec: {stream.video_codec}",

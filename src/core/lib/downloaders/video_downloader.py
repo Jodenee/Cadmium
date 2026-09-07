@@ -49,7 +49,7 @@ class VideoDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
 
         stream: Optional[Stream] = (
             (await youtube_video.streams())
-            .filter(progressive=True, only_audio=False, only_video=False)
+            .filter(progressive=True)
             .desc()
             .first()
         )
@@ -64,7 +64,7 @@ class VideoDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
                 "success": False,
                 "by_user_action": False,
                 "youtube_video_title": await youtube_video.title(),
-                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=await youtube_video.title())
             }
 
         logger.info("suitable stream successfully found")

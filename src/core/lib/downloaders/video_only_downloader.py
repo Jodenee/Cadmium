@@ -63,7 +63,7 @@ class VideoOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
                 "success": False,
                 "by_user_action": False,
                 "youtube_video_title": await youtube_video.title(),
-                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=await youtube_video.title())
             }
 
         logger.info("suitable stream successfully found")
