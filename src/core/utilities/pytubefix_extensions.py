@@ -87,8 +87,6 @@ def get_highest_average_bitrate(streams: StreamQuery, whitelisted_average_bitrat
         custom_filter_functions=custom_filters
     )
 
-    print(filtered_streams)
-
     try:
         return sorted(
             filtered_streams, 
