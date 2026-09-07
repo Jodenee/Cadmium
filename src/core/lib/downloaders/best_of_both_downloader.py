@@ -2,7 +2,9 @@ import logging
 
 from typing import Optional, cast
 from pathlib import Path
-from pytubefix import AsyncYouTube, Stream
+from pytubefix import AsyncYouTube, Stream, StreamQuery
+
+from core.utilities.pytubefix_extensions import get_highest_average_bitrate, get_highest_resolution
 
 from ..temporary_file_storage import TemporaryFileStorage
 from ..protocols import VideoDownloaderProtocol
@@ -127,16 +129,12 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
 
         logger.info("searching for most suitable streams to download")
 
-        video_stream: Optional[Stream] = (
-            (await youtube_video.streams())
-            .filter(is_dash=True, only_video=True)
-            .first()
+        streams: StreamQuery = await youtube_video.streams()
+        video_stream: Optional[Stream] = get_highest_resolution(
+            streams
         )
-        audio_stream: Optional[Stream] = (
-            (await youtube_video.streams())
-            .filter(is_dash=True, only_audio=True)
-            .desc()
-            .first()
+        audio_stream: Optional[Stream] = get_highest_average_bitrate(
+            streams
         )
 
         if video_stream == None or audio_stream == None:
@@ -151,7 +149,7 @@ class BestOfBothDownloader(VideoDownloaderProtocol[list[VideoDownloadResult]]):
                 "success": False,
                 "by_user_action": False,
                 "youtube_video_title": await youtube_video.title(),
-                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=await youtube_video.title())
             }]
         
         logger.info("suitable stream successfully found")

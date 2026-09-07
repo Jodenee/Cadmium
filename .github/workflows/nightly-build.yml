@@ -149,11 +149,7 @@ jobs:
           name: "Nightly Build ($$)"
           prerelease: true
           body: |
-            # Cadmium Nightly Build
-
             A build of the current development version of Cadmium, mainly for previewing new features and fixes while a proper release is created.
-
-            Created from commit: ${{ github.sha }}
 
             ## ⚠️ Disclaimer ⚠️
 

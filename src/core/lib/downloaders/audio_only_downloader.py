@@ -4,6 +4,8 @@ from typing import Optional, cast
 from pathlib import Path
 from pytubefix import AsyncYouTube, Stream
 
+from core.utilities.pytubefix_extensions import get_highest_average_bitrate
+
 from ..temporary_file_storage import TemporaryFileStorage
 from ..protocols import VideoDownloaderProtocol
 from ..factories import ProgressBarFactory
@@ -47,11 +49,8 @@ class AudioOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
         
         logger.info("searching for most suitable stream to download")
 
-        stream: Optional[Stream] = (
-            (await youtube_video.streams())
-            .filter(is_dash=True, only_audio=True)
-            .desc()
-            .first()
+        stream: Optional[Stream] = get_highest_average_bitrate(
+            await youtube_video.streams()
         )
 
         if stream == None:
@@ -64,7 +63,7 @@ class AudioOnlyDownloader(VideoDownloaderProtocol[VideoDownloadResult]):
                 "success": False,
                 "by_user_action": False,
                 "youtube_video_title": await youtube_video.title(),
-                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=youtube_video.title)
+                "message": str.format(UNABLE_TO_FIND_A_SUITABLE_STREAM_ERROR_MESSAGE, video_title=await youtube_video.title())
             }
 
         logger.info("suitable stream successfully found")
